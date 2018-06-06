@@ -1,0 +1,121 @@
+//Seleccion multiple en google maps 
+//Listener que agrega a un array si ctrl esta pulsado
+var markers = [];
+google.maps.event.addListener(marker, 'click', function (event) {
+  if (event.ctrlKey) {
+    markers.push(marker);
+    // some more code to change icon, add marker name to list, etc 
+    //   so user knows marker has been selected
+  }
+});
+
+function AutoCenter() {
+//  Create a new viewpoint bound
+var bounds = new google.maps.LatLngBounds();
+//  Go through each...
+$.each(markers, function (index, marker) {
+bounds.extend(marker.position);
+});
+//  Fit these bounds to the map
+map.fitBounds(bounds);
+}
+
+// Polygon containsLatLng - method to determine if a latLng is within a polygon
+google.maps.Polygon.prototype.containsLatLng = function (latLng) {
+    // Exclude points outside of bounds as there is no way they are in the poly
+    var bounds = this.getBounds();
+
+    if (bounds != null && !bounds.contains(latLng)) {
+        return false;
+    }
+
+    // Raycast point in polygon method
+    var inPoly = false;
+
+    var numPaths = this.getPaths().getLength();
+    for (var p = 0; p < numPaths; p++) {
+        var path = this.getPaths().getAt(p);
+        var numPoints = path.getLength();
+        var j = numPoints - 1;
+
+        for (var i = 0; i < numPoints; i++) {
+            var vertex1 = path.getAt(i);
+            var vertex2 = path.getAt(j);
+
+            if (vertex1.lng() < latLng.lng() && vertex2.lng() >= latLng.lng() || vertex2.lng() < latLng.lng() && vertex1.lng() >= latLng.lng()) {
+                if (vertex1.lat() + (latLng.lng() - vertex1.lng()) / (vertex2.lng() - vertex1.lng()) * (vertex2.lat() - vertex1.lat()) < latLng.lat()) {
+                    inPoly = !inPoly;
+                }
+            }
+
+            j = i;
+        }
+    }
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Polygon arrays</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      // This example requires the Geometry library. Include the libraries=geometry
+      // parameter when you first load the API. For example:
+      // <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry">
+
+      function initMap() {
+        var map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 24.886, lng: -70.269},
+          zoom: 5,
+        });
+
+        var triangleCoords = [
+          {lat: 25.774, lng: -80.19},
+          {lat: 18.466, lng: -66.118},
+          {lat: 32.321, lng: -64.757}
+        ];
+
+        var bermudaTriangle = new google.maps.Polygon({paths: triangleCoords});
+
+        google.maps.event.addListener(map, 'click', function(e) {
+          var resultColor =
+              google.maps.geometry.poly.containsLocation(e.latLng, bermudaTriangle) ?
+              'red' :
+              'green';
+
+          new google.maps.Marker({
+            position: e.latLng,
+            map: map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: resultColor,
+              fillOpacity: .2,
+              strokeColor: 'white',
+              strokeWeight: .5,
+              scale: 10
+            }
+          });
+        });
+      }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry&callback=initMap"
+         async defer></script>
+  </body>
+</html>
+

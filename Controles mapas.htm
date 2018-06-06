@@ -1,0 +1,319 @@
+<!-- 
+1. Mapa basico centrado en el Caimbo
+2. Incluye controles de dibujo y varios listener cuando se acciona uno de los menus
+3. Incluye botoneras y controles para llevar a cabo accines sencillas sobre el mapa 
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="description" content="[Esto es una prueba]">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="initial-scale=1.0">
+  <title>Maps JavaScript API</title>
+  <style>
+    #map {
+      float: left;
+      height: 100%;
+      width: 79%;
+    }
+  
+    #resultados {
+      float: left;
+      font-family: 'Roboto','sans-serif';
+      font-size: 12;
+      height: 100%;
+      line-height: 30px;
+      padding-left: 10px;
+      width: 19%;
+    }
+  
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .map-control {
+      background-color: #ffe;
+      border: 1px solid #ccc;
+      box-shadow: 0 6px 2px rgba(33, 33, 33, 0.4);
+      font-family: 'Roboto','sans-serif';
+      margin: 10px;
+      padding-right: 5px;
+      padding-left: 5px;
+      font-size: 12px;
+      <!-- Hide the control initially to prevent it from appearing before map loads-->
+      display: none;
+    }
+  
+    /* Display the control once it is inside the map. */
+    #map .map-control { display: block; }
+
+    .selector-control {
+      font-size: 14px;
+      line-height: 30px;
+      vertical-align: baseline;
+    }
+      
+  </style>
+</head>
+<body>
+  <!--  Meto una zona reservada para presentar resultados -->  
+  <div id="resultados"></div>
+
+  <!-- El mapa  -->
+  <div id="map"> </div>
+
+  <!-- El radio bottom -->
+  <div id="myControl" class="map-control">
+    <input type="radio" name="show-hide" id="hide-poi"
+        class="selector-control">
+    <label for="hide-poi">Balsa</label>
+    <input type="radio" name="show-hide" id="show-poi"
+        class="selector-control" checked="checked">
+    <label for="show-poi">Nave</label>
+  </div>
+
+  <!--  La lista desplegable -->
+  <div id="myList"  class="map-control">
+    <select id="lista1" class="selector-control">
+      <option value="Cantera">Cantera</option>
+      <option value="Oro">Oro</option>
+      <option value="Plata">Plata</option>
+      <option value="Bronce" selected="selected">Bronce</option>
+    </select>
+  </div>
+
+  <!-- Uso el ID del ejemplo de la web donde lo he cogido key=AIzaSyBCKiIqCdZGrVxx06LSbe7uG3zXOq1Cz5k
+  Mi propio ID: AIzaSyCRbr23Yvm71EcdyAP2QK8dr_W2rh6usJs -->
+
+	<script src="https://maps.googleapis.com/maps/api/js?			key=AIzaSyCRbr23Yvm71EcdyAP2QK8dr_W2rh6usJs&libraries=drawing,visualization&callback=initMap&language=es&region=ES" async defer>
+  </script>
+
+  <script>
+    var map;
+    var nave = new google.maps.LatLng(37.852, -3.729);
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: {lat: 37.852, lng: -3.729},
+        zoom: 16,
+        gestureHandling: 'cooperative',
+        mapTypeId: "satellite",	<!-- "terrain", "satellite" -->
+        zoomControl: true,
+        mapTypeControl: true,
+        scaleControl: true,
+        streetViewControl: false,
+        rotateControl: true,
+        fullscreenControl: false
+        });
+      
+      // Meto un marcador -->
+      var nave = {lat: 37.85265, lng: -3.73050};
+      var marker = new google.maps.Marker({
+        position: nave,
+        map: map,
+        title: 'La nave (zoom)'
+      });
+        
+      // Listener para ejecutar una accion cuando se hace click en el marker
+      marker.addListener('click', function() {
+        map.setZoom(17);
+        map.setCenter(marker.getPosition());
+      });
+      
+      // Meto una barra de herramientas -->
+      var multiOptions = {
+        editable: true,
+        draggable: true
+      };
+          
+      var drawingManager = new google.maps.drawing.DrawingManager({
+        //drawingMode: google.maps.drawing.OverlayType.MARKER,
+        drawingControl: true,
+        markerOptions: multiOptions,
+        polylineOptions: multiOptions,
+        rectangleOptions: multiOptions,
+        circleOptions: multiOptions,
+        polygonOptions: multiOptions,
+        drawingControlOptions: {
+          position: google.maps.ControlPosition.TOP_CENTER,
+          drawingModes: ['marker', 'circle', 'polygon', 'polyline', 'rectangle']
+          }
+      });
+
+      drawingManager.setMap(map);
+          	
+      // Creo un listener para desctivar la edicion y activarla cuando se edite la forma
+      // Primero creo las funciones que necesitare para activar, desactivar y borrar 
+      var selectedShape;
+          
+      function clearSelection () {	//Resetea la variable usada para saber lo seleccionado
+        if (selectedShape) {
+          if (selectedShape.type !== 'marker') {
+            selectedShape.setEditable(false);
+          }                    
+          selectedShape = null;
+        }
+      }
+      
+      function setSelection (shape) {
+        if (shape.type !== 'marker') {
+          clearSelection();
+          shape.setEditable(true);
+        }                
+        selectedShape = shape;
+      }
+      
+      function deleteSelectedShape () {
+        if (selectedShape) {
+          selectedShape.setMap(null);
+          }
+      }
+        
+      // Ahora creo el listener cuando se completa un nuevo overlay
+      google.maps.event.addListener(drawingManager, 'overlaycomplete', 
+        function (e) {
+          var newShape = e.overlay;                    
+          newShape.type = e.type;
+          if (newShape.type == "marker") {
+            sidediv.innerHTML += newShape.getPosition()+"\<br>";
+          }
+          
+          drawingManager.setDrawingMode(null);                    
+          google.maps.event.addListener(newShape, 'click', 
+            function (e) {
+              setSelection(newShape);
+            });
+          setSelection(newShape);
+      });
+      
+      // Clear the current selection when the drawing mode is changed, or when the map is clicked.
+      google.maps.event.addListener(drawingManager, 'drawingmode_changed', clearSelection);
+      google.maps.event.addListener(map, 'click', clearSelection);
+      //  google.maps.event.addDomListener(document.getElementById('delete-button'), 'click', deleteSelectedShape);
+
+
+      // Meto un letrero
+      var cantera = {lat: 37.85, lng: -3.733};
+      var coordInfoWindow = new google.maps.InfoWindow();
+      coordInfoWindow.setContent("Cantera");
+      coordInfoWindow.setPosition(cantera);
+      coordInfoWindow.open(map);
+            
+      // Meto un nuevo marcador esta vez con una imagen como icono
+      var image = 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png';
+      var balsa = {lat: 37.8515, lng: -3.7283};
+      var marker2 = new google.maps.Marker({
+        position: balsa,
+        map: map,
+        icon: image,
+        draggable: true,
+        animation: google.maps.Animation.DROP,
+        title: 'La balsa (letrero)'
+      });
+        
+      // Listener para meter un letrero en caso de click. Lo asigno a una variable para poder eliminar este listener cuando yo decida.
+      var letrero = marker2.addListener('click', 
+        function() {
+          var mensaje = "La balsa";
+          var infowindow = new google.maps.InfoWindow({content: mensaje});
+          infowindow.open(marker2.get('map'), marker2);
+          map.panTo(balsa);		//Es un efeccto de centrado mas elegane que map.setCenter()
+      });
+      
+      //Elimino este listener de modo que no vuelva a mostrar el letro mas al hacer click
+      //google.maps.event.removeListener(letrero);
+
+      // Meto un listener del DOM. Aqui, Maps API al recibirlo muestra una ventana dealerta en navegador
+      //Muestra un mensaje cuando se have click sobre el mapa pero no fuera de este.
+      var mapDiv = document.getElementById('map');
+      google.maps.event.addDomListenerOnce(mapDiv, 'click', 
+        function() {
+          sidediv.innerHTML = "Resultado once click: " + heatmapData[0];
+      });
+            
+      // Meto un control personalizado "radio"
+      // Add controls to the map, allowing users to hide/show features.
+      var control1 = document.getElementById('myControl');
+      map.controls[google.maps.ControlPosition.TOP_RIGHT].push(control1);
+
+      // Apply new JSON when the user chooses to hide/show features.
+      document.getElementById('hide-poi').addEventListener('click', 
+        function() {
+          map.panTo(balsa);
+          marker.setMap(map);
+      });
+      document.getElementById('show-poi').addEventListener('click', 
+        function() {
+          map.panTo(nave);
+          marker.setMap(null);
+      });
+
+      // Meto un control personalizado "lista"
+      // Add control to the map.
+      var control2 = document.getElementById('myList');
+      map.controls[google.maps.ControlPosition. RIGHT_TOP].push(control2);
+      
+      // Apply new JSON when the user selects a different style.
+      control2.addEventListener('change', 
+        function() {
+          coordInfoWindow.setContent(lista1.value);
+          coordInfoWindow.setMap(map);
+      });
+            
+      // Meto una ventana no de mapa a la izquierda para presentar resultados
+      var sidediv = document.getElementById('resultados');
+      sidediv.innerHTML = "Resultado: " + "Hola!!";
+        
+      // Meto una serie de puntos en el punto como si fueran muestras de una ruta
+      var heatmapData = [
+        new google.maps.LatLng(37.852986, -3.73398) ,
+        new google.maps.LatLng(37.853249, -3.734023) ,
+        new google.maps.LatLng(37.853592, -3.73405) ,
+        new google.maps.LatLng(37.853952, -3.734088) ,
+        new google.maps.LatLng(37.854295, -3.734157) ,
+        new google.maps.LatLng(37.854303, -3.733701) ,
+        new google.maps.LatLng(37.854083, -3.733685) ,
+        new google.maps.LatLng(37.853871, -3.733653) ,
+        new google.maps.LatLng(37.853685, -3.733637) ,
+        new google.maps.LatLng(37.853537, -3.7336) ,
+        new google.maps.LatLng(37.85338, -3.7336) ,
+        new google.maps.LatLng(37.853223, -3.733584) ,
+        new google.maps.LatLng(37.853062, -3.733562) ,
+        new google.maps.LatLng(37.852961, -3.733546) ,
+        new google.maps.LatLng(37.852982, -3.733299) ,
+        new google.maps.LatLng(37.853329, -3.733348) ,
+        new google.maps.LatLng(37.853736, -3.733412) ,
+        new google.maps.LatLng(37.854096, -3.73345) ,
+        new google.maps.LatLng(37.854299, -3.733471) ,
+        new google.maps.LatLng(37.854176, -3.733235) ,
+        new google.maps.LatLng(37.854028, -3.733004) ,
+        new google.maps.LatLng(37.853952, -3.732849) ,
+        new google.maps.LatLng(37.853952, -3.732849) 
+      ];
+
+      // Meto una polilinea que una los puntos del heatmap          
+      var ruta = new google.maps.Polyline({
+        path: heatmapData,
+        strokeColor: "white",
+        strokeOpacity: 0.5,
+        map: map
+      });
+        
+      // Meto heatmap (incluye la libreria visualization al llamar a la API
+      var heatmap = new google.maps.visualization.HeatmapLayer({
+        data: heatmapData,
+        map: map
+      });
+      heatmap.set('radius', heatmap.get('radius') ? null : 20);
+      heatmap.set('opacity', heatmap.get('opacity') ? null : 0.3);
+      heatmap.set ('dissipating', true);      
+          
+      // Acaba la funcion initMap -->   
+    }
+  </script>
+</body>
+</html>
