@@ -3,7 +3,7 @@
 1. Crea un mapa impio solo con la botonera de dibujo
 2. Gestiona la activacion y la desactivacion de la edicion de los overlays creados
 3. Creo una serie de puntos en el mapa (no son "Marker", no se bien por que) para jugar a contarlos
-4. Uso la funcion containsLocation (libreria geometry)
+4. Creo una funcion generica que calcula los puntos de un array dentro de un overlay el que sea
 
 
 */
@@ -95,10 +95,6 @@ function initMap() {
             shape.setMap(null);     
         }
     }
-    
-    //TODO: Hacer una funcion generica para circle (distancia), rectangulos (rangos lat, lng), poly (containsLocation) 
-    //getBounds vale para circulos y rectangulos pero no polygon
-    //containsLocation vale solo para polygon
 
     // Ahora creo el listener cuando se completa un nuevo overlay, onclick (editar), y rightclick (borrar)
     google.maps.event.addListener(drawingManager, 'overlaycomplete', 
@@ -117,16 +113,9 @@ function initMap() {
             setSelection(newShape);                 //Activo la edicion del overlay creado por defecto
                 //console.log(e.overlay.getBounds().getNorthEast().lat());  
             
-            //Reviso si hay objetos y cuantos dentro del rectangulo
-            if (newShape.type == "polygon"){
-                console.log("Un nuevo rectangulo");
-                //console.log(newShape.getBounds().getNorthEast().lat());   //Circle or rentangle
-                //console.log(newShape.getBounds().getSouthWest().lat());
-                var miCoor = new google.maps.LatLng(37.8531, -3.7284);
-                var miflag = google.maps.geometry.poly.containsLocation(miCoor, newShape); //Polygon
-                console.log("Coordenas estan dentro?: " + miflag);
-                
-                cuentaObjetos(newShape);    //Cuenta los objetos de misMarkers dentro del nuevo polygon
+            //Calculo cuantos objetos dentro del overlay
+            if (newShape.type !== "marker" || newShape.type !== null ){              
+                console.log ("Objetos seleccionados :" + cuentaObjetos(puntos, newShape));    //Cuenta los objetos de misMarkers dentro del nuevo polygon
             }
         }
     );
@@ -154,6 +143,7 @@ function initMap() {
     }
 
     //Creo un listener para chequear cuando se cambia el tipo de tool
+    //Y si se selecciona la mano (null) dejo de editar
     google.maps.event.addListener(drawingManager, 'drawingmode_changed', function () {
         if (drawingManager.drawingMode==null){
             clearSelection();
@@ -224,182 +214,40 @@ function initMap() {
     }
 
 
-
     //Cuento los puntos que estan dentro del nuevo poligono
-    function cuentaObjetos(misPuntos, miPoligono) {
-    //Devuelve cuantos puntos del array de objetos esta dentro del polygon
-        //Recorro todos los puntos del array y cuento si esta dentro
-        for (var i=0, contador=0; i< misPuntos.length;i++){
-            if (google.maps.geometry.poly.containsLocation(misPuntos[i].getPosition(), miPoligono)){
-                contador++;
-            }
+    function cuentaObjetos(misPuntos, miOverlay) {
+    //Devuelve cuantos puntos del array estan dentro de un Overlay (circle, rectangle, polygon)
+        //1. Determino que forma tiene, y en base a eso uso uno u otro algortimo de in o no
+        //2. Recorro todos los puntos del array y cuento si esta dentro
+        var contador = null;    
+        if (miOverlay.type == "polygon") {
+            for (var i=0; i< misPuntos.length;i++){
+                if (google.maps.geometry.poly.containsLocation(misPuntos[i].getPosition(), miOverlay)){
+                    contador++;
+                }
+            }    
+        }else if (miOverlay.type == "circle") {
+            var center = miOverlay.center;
+            var radio = miOverlay.radius;
+            for (var i=0; i< misPuntos.length;i++){
+                if (google.maps.geometry.spherical.computeDistanceBetween (misPuntos[i].getPosition(), center) <= radio){
+                    contador++;
+                }
+            }    
+        }else if (miOverlay.type == "rectangle") {
+            var upLat= miOverlay.getBounds().getNorthEast().lat();
+            var downLat=miOverlay.getBounds().getSouthWest().lat();
+            var leftLng=miOverlay.getBounds().getSouthWest().lng();
+            var rightLng= miOverlay.getBounds().getNorthEast().lng();
+            for (var i=0; i< misPuntos.length;i++){
+                if (puntos[i].getPosition().lat()<=upLat && puntos[i].getPosition().lat()>=downLat){
+                    if (puntos[i].getPosition().lng()<=rightLng && puntos[i].getPosition().lng()>=leftLng){
+                        contador++;
+                    }
+                }
+            }             
         }
         return contador;
     }
 
-    //PRUEBAS: Determino los bordes de la forma seleccionada
-    function perimetro(){
-    //Determina la polilinea que delimita la forma elegida
-        
-        const TRIANGLE = [
-            {lat: 37.8525, lng: -3.733},
-            {lat: 37.8535, lng: -3.734},
-            {lat: 37.8525, lng: -3.735}
-            ];  
-        var myShape = new google.maps.Polygon({paths: TRIANGLE});
-        const COORD_OK = new google.maps.LatLng(37.853, -3.734);
-        const COORD_KO = new google.maps.LatLng(37.86, -3.734);
-
-        //Uso la funcion de google.maps para evaluar si esta dentro del polygon myShape
-        var flag = google.maps.geometry.poly.containsLocation(COORD_OK, myShape);
-            console.log("Coordenas estan dentro?: " + flag);
-
-        flag = google.maps.geometry.poly.containsLocation(COORD_KO, myShape);
-        console.log("Coordenas estan dentro?: " + flag);
-
-        //Pruebo con la funcion personalizada
-        //myShape.containsLatLng(coordenadas);
-
-    }
-
-    //Pruebo la funcion perimetro que usa containsLocation de googleMaps
-    perimetro();
-
-}/*
-
-    // Polygon containsLatLng - method to determine if a latLng is within a polygon
-        var triangleCoords = [
-          {lat: 25.774, lng: -80.19},
-          {lat: 18.466, lng: -66.118},
-          {lat: 32.321, lng: -64.757}
-        ];
-
-        var bermudaTriangle = new google.maps.Polygon({paths: triangleCoords});
-
-        google.maps.event.addListener(map, 'click', function(e) {
-          var resultColor =
-              google.maps.geometry.poly.containsLocation(e.latLng, bermudaTriangle) ?
-              'red' :
-              'green';
-
-
-    
-    function isDentro (){
-
-        //Defino unos datos para probar aqui dentro
-        const coordenadas = new google.maps.LatLng(37.853, -3.734);
-        const triangleCoords = [
-            {lat: 37.8525, lng: -3.733},
-            {lat: 37.8535, lng: -3.734},
-            {lat: 37.8525, lng: -3.735}
-            ];  
-        myShape = new google.maps.Polygon({paths: triangleCoords});
-        
-        // Exclude points outside of bounds as there is no way they are in the poly       
-        var bounds = myShape.getBounds();
-        if (bounds != null && !bounds.contains(coordenadas)) {
-            return false;
-        }
-
-        // Raycast point in polygon method
-        var inPoly = false;
-
-        var numPaths = myShape.getPaths().getLength();
-        for (var p = 0; p < numPaths; p++) {
-            var path = myShape.getPaths().getAt(p);
-            var numPoints = path.getLength();
-            var j = numPoints - 1;
-
-            for (var i = 0; i < numPoints; i++) {
-                var vertex1 = path.getAt(i);
-                var vertex2 = path.getAt(j);
-
-                if (vertex1.lng() < coordenadas.lng() && vertex2.lng() >= coordenadas.lng() || vertex2.lng() < coordenadas.lng() && vertex1.lng() >= coordenadas.lng()) {
-                    if (vertex1.lat() + (coordenadas.lng() - vertex1.lng()) / (vertex2.lng() - vertex1.lng()) * (vertex2.lat() - vertex1.lat()) < coordenadas.lat()) {
-                        inPoly = !inPoly;
-                    }
-                }
-                j = i;
-            }
-        }
-        return inPoly;
-    }
-
-    google.maps.Polygon.prototype.containsLatLng = function (latLng) {
-        // Exclude points outside of bounds as there is no way they are in the poly
-        var bounds = this.getBounds();
-    
-        if (bounds != null && !bounds.contains(latLng)) {
-            return false;
-        }
-    
-        // Raycast point in polygon method
-        var inPoly = false;
-    
-        var numPaths = this.getPaths().getLength();
-        for (var p = 0; p < numPaths; p++) {
-            var path = this.getPaths().getAt(p);
-            var numPoints = path.getLength();
-            var j = numPoints - 1;
-    
-            for (var i = 0; i < numPoints; i++) {
-                var vertex1 = path.getAt(i);
-                var vertex2 = path.getAt(j);
-    
-                if (vertex1.lng() < latLng.lng() && vertex2.lng() >= latLng.lng() || vertex2.lng() < latLng.lng() && vertex1.lng() >= latLng.lng()) {
-                    if (vertex1.lat() + (latLng.lng() - vertex1.lng()) / (vertex2.lng() - vertex1.lng()) * (vertex2.lat() - vertex1.lat()) < latLng.lat()) {
-                        inPoly = !inPoly;
-                    }
-                }
-    
-                j = i;
-            }
-        }
-        return inPoly;
-    }
-
-    perimetro();
-    //isDentro();
-
 }
-    
-
-
-
-//------------------------------------------//
-//      Mis Notas de codigo a reutilizar    //
-//------------------------------------------//
-/*
-//Dos tipos de listener se disparan cada vez que se crea un overlay (elemento dibujado)
-google.maps.event.addListener(drawingManager, 'circlecomplete', function(circle) {
-  var radius = circle.getRadius();
-});
-
-google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
-  if (event.type == 'circle') {
-    var radius = event.overlay.getRadius();
-  }
-});
-
-//Puedo meter un listener cuando cambia una propiedad del overlay
-//Asi por ejemplo, volver a revisar los objetos superpuestos
-    google.maps.event.addListener(drawingManager, 'circlecomplete', function (circle) {
-        google.maps.event.addListener(circle, 'radius_changed', function () {
-            console.log('radius changed');
-        });
-    });
-
-//Listener cuando cambian los bounds de un overlay
-google.maps.event.addListenerOnce(gMap, 'bounds_changed', function(){
-alert(this.getBounds());
-});
-
-LatLngBounds is not an array, it's an object and the documentation shows you two methods to get the coordinates:
-
-var NE = bounds.getNorthEast();
-var SW = bounds.getSouthWest();
-Those two methods return LatLng objects which you can pass to fromLatLngToDivPixel() 
-However, if you got your LatLngBounds object by reading map.getBounds() 
-then you already know what the pixel values should be, (the corners of your map container DIV).
-*/
-
