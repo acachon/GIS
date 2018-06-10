@@ -6,7 +6,8 @@
 4. Creo una funcion generica que calcula los puntos de un array dentro de un overlay el que sea
 5. Cargo un objeto geoJson en la capa data del map
 6. Seleccion multiple de overlays cuando tengo CTRL pulsado
-
+7. Icono de marker redondo y se resalta al seleccionar
+8. 
 
 */
 
@@ -95,7 +96,9 @@ function initMap() {
                 {
                     if (selectedShapes[i].type !== 'marker') {  //Los marcadores no son editales y falla si setEditable(false)
                         selectedShapes[i].setEditable(false);
-                    }  
+                    } else{
+                        selectedShapes[i].setOpacity(0.5);
+                    } 
                 }
             selectedShapes = [];                     //Reinicializo el array de elementos seleccionados
         }
@@ -110,7 +113,7 @@ function initMap() {
         if (shape.type !== 'marker') {
             shape.setEditable(true);
         } else{
-            shape.setStyle("stroke")
+            shape.setOpacity(1);
         }
 
         selectedShapes.push(shape);
@@ -139,7 +142,18 @@ function initMap() {
                 //);
                 console.log ("[" + newShape.getPosition().lng().toFixed(4)
                     + ", " + newShape.getPosition().lat().toFixed(4) + "],"   
-                );   
+                );
+                //Configuro el marker por defecto
+                newShape.opacity= 0.2;                      //Cuando selecciono el objeto lo pongo en opacity=1 para resaltar
+                newShape.setOptions({
+                    "opacity": 0.5,
+                    "icon": {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        strokeWeight:15,                    //Con esto mayor que scale, parece un circulo y no un aro
+                        strokeColor:'black',
+                    }
+                });   
             }
            
             //Creo los listener onclick (editar), y rightclick (borrar)
@@ -203,8 +217,8 @@ function initMap() {
     //C. FusionTables
 
     //4. Copio nodos
-    var copias = copiarOverlays(selectedShapes);
-    console.log(copias);
+    //var copias = copiarOverlays();
+    //console.log("Copias:" + copias);
 
 }
 
@@ -298,7 +312,14 @@ function creaPuntos(){
             title: "Marcador" + i,
             editable: true,             //Modificable
             draggable: true,            //Movible
-            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',  //Icono azul (red, yellow, green, purple )
+            //icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',  //Icono azul (red, yellow, green, purple )
+            opacity: 0.6,               //Cuando selecciono el objeto lo pongo en opacity=1 para resaltar
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,    //Icono predefinido como circulo
+                scale: 5,                              
+                strokeWeight:6,                         //Con el grosor de linea tan grande parece un circulo
+                strokeColor:'white'                     //Color por defecto azul
+            }            
             })
         );
     }
@@ -339,12 +360,43 @@ function migeoJSON(){
     return geoJSON;
 }
 
-function copiarOverlays(arrayOverlays){
+function copiarOverlays(){
 //Hace una copia de los overlays que se le pasen en un array. Con un desplazamiento respecto al original
 //Devuelve un array con la copia de los objetos,
+    var arrayCopiados=[];
+        console.log("Elementos a copiar: " + selectedShapes.length);
+    for (var i in selectedShapes){
+        const OFFLAT= 0.0003;
+        const OFFLNG= 0.0003;
+        var molde = selectedShapes[i];
+        
+        //Creo un elemento nuevo y le asigno los para metros de la copia
+        if (molde.type == "marker"){
+            var nuevo = new google.maps.Marker({
+                position: {lat: molde.getPosition().lat()+ OFFLAT, lng: molde.getPosition().lng()+ OFFLNG},
+                map: map,
+                editable: true,             //Modificable
+                draggable: true,            //Movible
+                opacity: 0.6,               //Cuando selecciono el objeto lo pongo en opacity=1 para resaltar
+                icon: molde.icon            
+            });
+            //google.maps.event.clearListeners(nuevo, 'click');
 
-    console.log("elementos: " + arrayOverlays.length);
-    return arrayOverlays.length;
+
+        } else if (molde.type == "marker"){
+
+        } else if (molde.type == "circle"){
+
+        } else if (molde.type == "polygon"){
+
+        } else if (molde.type == "polyline"){
+
+        }
+
+    }
+    
+    
+    return selectedShapes.length;
 
 }
 

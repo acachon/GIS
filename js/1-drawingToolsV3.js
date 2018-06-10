@@ -5,8 +5,10 @@
 3. Creo una serie de puntos en el mapa (no son "Marker", no se bien por que) para jugar a contarlos
 4. Creo una funcion generica que calcula los puntos de un array dentro de un overlay el que sea
 5. Cargo un objeto geoJson en la capa data del map
-6. Seleccion multiple de overlays cuando tengo CTRL pulsado
-
+6. Seleccion multiple de overlays cuando tengo CTRL pulsado (y borrado multiple si dblclick con boton pulsado)
+7. Icono de marker redondo y se resalta al seleccionar
+8. Funcion para copiar los objetos seleccionados (boton copiar en formulario)
+9. 
 
 */
 
@@ -84,49 +86,6 @@ function initMap() {
         //markerOptions: {icon: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png'},
     });
   
-    // Creo los listener para desactivar la edicion y activarla cuando se edite la forma
-    // Primero creo las funciones que necesitare para activar, desactivar y borrar             
-        
-    function clearSelection () {
-    //Resetea la variable usada donde tengo todo lo seleccionado (selectedShapes)
-    //Es llamada por setSelection, por tanto, solo se desactiva un overlay cuando se activa otro	        
-        if (selectedShapes.length>0) {
-            for (var i in selectedShapes)
-                {
-                    if (selectedShapes[i].type !== 'marker') {  //Los marcadores no son editales y falla si setEditable(false)
-                        selectedShapes[i].setEditable(false);
-                    }  
-                }
-            selectedShapes = [];                     //Reinicializo el array de elementos seleccionados
-        }
-    }
-    
-    function setSelection (shape) {
-    //Hago editable la forma seleccionada y actualizo la variable global (selectShape)
-    //Esta funcion es un listener cuando se hace click en un overlay
-        
-        if (!selectingFlag) clearSelection(); //si tengo pulsado el control no deselecciono lo anterior
-
-        if (shape.type !== 'marker') {
-            shape.setEditable(true);
-        } else{
-            shape.setStyle("stroke")
-        }
-
-        selectedShapes.push(shape);
-            console.log("Overlays seleccionados: " + selectedShapes.length);                
-    }
-    
-    function deleteSelectedShapes () {
-    //Borra del mapa la forma seleccionada, overlay
-    //Listener que se llama cuando se hace dobleclick en el mapa
-        
-        for (var i=0; i<selectedShapes.length;i++){
-            selectedShapes[i].setMap(null);
-        }
-        selectedShapes=[];
-        selectingFlag=false;
-    }
 
     // Ahora creo el listener cuando se completa un nuevo overlay, onclick (editar), y rightclick (borrar)
     google.maps.event.addListener(drawingManager, 'overlaycomplete', 
@@ -139,7 +98,18 @@ function initMap() {
                 //);
                 console.log ("[" + newShape.getPosition().lng().toFixed(4)
                     + ", " + newShape.getPosition().lat().toFixed(4) + "],"   
-                );   
+                );
+                //Configuro el marker por defecto
+                newShape.opacity= 0.2;                      //Cuando selecciono el objeto lo pongo en opacity=1 para resaltar
+                newShape.setOptions({
+                    "opacity": 0.5,
+                    "icon": {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        strokeWeight:15,                    //Con esto mayor que scale, parece un circulo y no un aro
+                        strokeColor:'black',
+                    }
+                });   
             }
            
             //Creo los listener onclick (editar), y rightclick (borrar)
@@ -156,28 +126,6 @@ function initMap() {
             }
         }
     );
-
-    //CReo los listener del objeto recien creado para que sea editable: onclick (editar), y dblclick (borrar)
-    function overlayEditable(newShape){
-    //Crea los listener a un objeto de dibujo para que sean editables
-    //onclick: objeto seleccinado y editable
-    //dblclick: eliminar objeto
-
-        google.maps.event.addListener(newShape, 'click',        //Creo el listener de onclick (activar edicion del overlay) 
-            function (event) {
-                console.log("Seleccion multiple: " + selectingFlag);
-                setSelection(newShape);
-            }
-        );
-
-        google.maps.event.addListener(newShape, 'dblclick',   //Creo el listener de dblclick (eliminar overlay) 
-            function () {
-                setSelection(newShape);                         //Selecciono el overlay clickado a borrar                      
-                deleteSelectedShapes();                         //Mando borrarlo
-            }
-        );
-
-    }
 
     //Creo un listener para chequear cuando se cambia el tipo de tool
     //Y si se selecciona la mano (null) dejo de editar
@@ -203,14 +151,82 @@ function initMap() {
     //C. FusionTables
 
     //4. Copio nodos
-    var copias = copiarOverlays(selectedShapes);
-    console.log(copias);
+    //var copias = copiarOverlays();
+    //console.log("Copias:" + copias);
 
 }
 
 //----------------------------//
 // FUNCIONES GLOBALES         //
 //----------------------------//
+
+// Creo los listener para desactivar la edicion y activarla cuando se edite la forma
+// Primero creo las funciones que necesitare para activar, desactivar y borrar             
+    
+function clearSelection () {
+//Resetea la variable usada donde tengo todo lo seleccionado (selectedShapes)
+//Es llamada por setSelection, por tanto, solo se desactiva un overlay cuando se activa otro	        
+    if (selectedShapes.length>0) {
+        for (var i in selectedShapes)
+            {
+                if (selectedShapes[i].type !== 'marker') {  //Los marcadores no son editales y falla si setEditable(false)
+                    selectedShapes[i].setEditable(false);
+                } else{
+                    selectedShapes[i].setOpacity(0.5);
+                } 
+            }
+        selectedShapes = [];                     //Reinicializo el array de elementos seleccionados
+    }
+}
+
+function setSelection (shape) {
+//Hago editable la forma seleccionada y actualizo la variable global (selectShape)
+//Esta funcion es un listener cuando se hace click en un overlay
+    
+    if (!selectingFlag) clearSelection(); //si tengo pulsado el control no deselecciono lo anterior
+
+    if (shape.type !== 'marker') {
+        shape.setEditable(true);
+    } else{
+        shape.setOpacity(1);
+    }
+
+    selectedShapes.push(shape);
+        console.log("Overlays seleccionados: " + selectedShapes.length);                
+}
+
+function deleteSelectedShapes () {
+//Borra del mapa la forma seleccionada, overlay
+//Listener que se llama cuando se hace dobleclick en el mapa
+    
+    for (var i=0; i<selectedShapes.length;i++){
+        selectedShapes[i].setMap(null);
+    }
+    selectedShapes=[];
+    selectingFlag=false;
+}
+    
+//CReo los listener del objeto recien creado para que sea editable: onclick (editar), y dblclick (borrar)
+function overlayEditable(newShape){
+//Crea los listener a un objeto de dibujo para que sean editables
+//onclick: objeto seleccinado y editable
+//dblclick: eliminar objeto
+
+    google.maps.event.addListener(newShape, 'click',        //Creo el listener de onclick (activar edicion del overlay) 
+        function (event) {
+            console.log("Seleccion multiple: " + selectingFlag);
+            setSelection(newShape);
+        }
+    );
+
+    google.maps.event.addListener(newShape, 'dblclick',   //Creo el listener de dblclick (eliminar overlay) 
+        function () {
+            setSelection(newShape);                         //Selecciono el overlay clickado a borrar                      
+            deleteSelectedShapes();                         //Mando borrarlo
+        }
+    );
+
+}
 
 function cuentaObjetos(misPuntos, miOverlay) {
 //Devuelve cuantos puntos del array misPuntos estan dentro de miOverlay (circle, rectangle, polygon). 
@@ -298,7 +314,14 @@ function creaPuntos(){
             title: "Marcador" + i,
             editable: true,             //Modificable
             draggable: true,            //Movible
-            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',  //Icono azul (red, yellow, green, purple )
+            //icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',  //Icono azul (red, yellow, green, purple )
+            opacity: 0.6,               //Cuando selecciono el objeto lo pongo en opacity=1 para resaltar
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,    //Icono predefinido como circulo
+                scale: 5,                              
+                strokeWeight:6,                         //Con el grosor de linea tan grande parece un circulo
+                strokeColor:'white'                     //Color por defecto azul
+            }            
             })
         );
     }
@@ -339,14 +362,127 @@ function migeoJSON(){
     return geoJSON;
 }
 
-function copiarOverlays(arrayOverlays){
+function copiarOverlays(){
 //Hace una copia de los overlays que se le pasen en un array. Con un desplazamiento respecto al original
 //Devuelve un array con la copia de los objetos,
+    var arrayCopiados=[];
+    selectingFlag=true;                     //Para que se queden todas las copias seleccionadas
 
-    console.log("elementos: " + arrayOverlays.length);
-    return arrayOverlays.length;
+    for (var i in selectedShapes){
+        const OFFLAT= 0.0003;
+        const OFFLNG= 0.0003;
+        var molde = selectedShapes[i];          //Copio la ubicacion a partir del objeto seleccionado
+        
+        //Creo un elemento nuevo y le asigno los para metros de la copia
+        if (molde.type == "marker"){
+            //Creo el objeto copia
+            var nuevo = new google.maps.Marker({
+                map: map,
+                type: "marker",             //El objeto por defecto se crea sin este atributo !!
+                position: {lat: molde.getPosition().lat()+ OFFLAT, lng: molde.getPosition().lng()+ OFFLNG},
+                opacity: 0.6,               //Cuando selecciono el objeto lo pongo en opacity=1 para resaltar
+                icon: molde.icon,            
+                editable: true,             //Modificable
+                draggable: true,            //Movible
+            });
+
+            //Asigno los listener para hacerlo editable
+            overlayEditable(nuevo);
+            selectedShapes[i].opacity=0.5;            
+
+        } else if (molde.type == "circle"){
+            //Creo el objeto copia
+            var nuevo = new google.maps.Circle({
+                map: map,
+                type: "circle",             //El objeto por defecto se crea sin este atributo !!
+                center: {lat: molde.center.lat()+ OFFLAT, lng: molde.center.lng()+ OFFLNG},
+                radius: molde.radius,
+                editable: true,             //Modificable
+                draggable: true,            //Movible
+              });
+
+            //Asigno los listener para hacerlo editable
+            overlayEditable(nuevo);
+            selectedShapes[i].setEditable(false);      
+
+        } else if (molde.type == "polygon"){
+            //Creo el objeto copia
+            var nuevo = new google.maps.Polygon({
+                map: map,
+                type: "polygon",                                          //El objeto por defecto se crea sin este atributo !!
+                paths: molde.getPaths(),
+                editable: true,             //Modificable
+                draggable: true,            //Movible
+              });
+
+            
+            for (var j=0, miPath=[]; j<nuevo.getPaths().getAt(0).length;j++){         //Recorro cada vertice de la copia para desplazarlo
+                miLat =  molde.getPaths().getAt(0).getAt(j).lat() + OFFLAT; 
+                miLng =  molde.getPaths().getAt(0).getAt(j).lng() + OFFLNG;
+                miPath.push({lat: miLat,lng: miLng});
+            }
+            nuevo.setPaths(miPath);
+
+            //Asigno los listener para hacerlo editable
+            overlayEditable(nuevo);
+            selectedShapes[i].setEditable(false);
+
+        } else if (molde.type == "rectangle"){
+            //Creo el objeto copia
+            var nuevo = new google.maps.Rectangle({
+                map: map,
+                type: "rectangle",                                          //El objeto por defecto se crea sin este atributo !!
+                bounds: {                                                   //Desfaso las coordenadas respecto al molde original
+                    north: molde.getBounds().getNorthEast().lat() + OFFLAT,
+                    south: molde.getBounds().getSouthWest().lat() + OFFLAT,
+                    east: molde.getBounds().getNorthEast().lng() + OFFLNG,
+                    west: molde.getBounds().getSouthWest().lng() + OFFLNG
+                  },
+                editable: true,             //Modificable
+                draggable: true,            //Movible
+              });
+
+            //Asigno los listener para hacerlo editable
+            overlayEditable(nuevo);
+            selectedShapes[i].setEditable(false);  
+
+        } else if (molde.type == "polyline"){
+            //Creo el objeto copia
+            var nuevo = new google.maps.Polyline({
+                map: map,
+                type: "polyline",                                          //El objeto por defecto se crea sin este atributo !!
+                path: molde.getPath(),
+                editable: true,             //Modificable
+                draggable: true,            //Movible
+                });
+
+            for (var j=0, miPath=[]; j<nuevo.getPath().length;j++){         //Recorro cada vertice de la copia para desplazarlo
+                miLat =  molde.getPath().getAt(j).lat() + OFFLAT; 
+                miLng =  molde.getPath().getAt(j).lng() + OFFLNG;
+                miPath.push({lat: miLat,lng: miLng});
+            }
+            nuevo.setPath(miPath);
+
+            //Asigno los listener para hacerlo editable
+            overlayEditable(nuevo);
+            selectedShapes[i].setEditable(false);    
+
+        }
+
+        //Voy almacenando en el array de salida los nuevos elementos copiados
+        arrayCopiados.push(nuevo);
+    }
+    //Marco como seleccionados los elementos recien creados
+    selectedShapes=arrayCopiados;
+
+    selectingFlag=false;                                    //Lo desactivo una vez hecha la copia
+    return arrayCopiados;
 
 }
+
+
+
+
 
 /*TODO: probar esta funcion para recuperar las coordenadas (o otra property) de cada feature del geoJSON
 var eid = 30;
