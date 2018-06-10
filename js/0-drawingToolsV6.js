@@ -5,7 +5,6 @@
 3. Creo una serie de puntos en el mapa (no son "Marker", no se bien por que) para jugar a contarlos
 4. Creo una funcion generica que calcula los puntos de un array dentro de un overlay el que sea
 
-
 */
 
 //Variables globales
@@ -153,7 +152,6 @@ function initMap() {
     // Lanzo al mapa la barra de dibujo
     drawingManager.setMap(map);
 
-
     function creaPuntos (){
     //Crea un conjunto de puntos y una polilinea que los une para pruebas y los pone en el mapa (map)
     //Devuelve un array de puntos tipo LatLng(), y una poliinea (global ruta) que los une
@@ -212,7 +210,6 @@ function initMap() {
         //return misPuntos;
         return misMarkers;
     }
-
 
     //Cuento los puntos que estan dentro del nuevo poligono
     function cuentaObjetos(misPuntos, miOverlay) {

@@ -23,7 +23,6 @@ html, body {
 }
 #content-window {
     float: left;
-    font-family: 'Roboto','sans-serif';
     height: 100%;
     line-height: 30px;
     padding-left: 10px;
