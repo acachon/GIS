@@ -1,0 +1,105 @@
+<!--    
+    Web de ejemplo de consulta del API del catastro 
+
+-->
+<html>
+<head>
+    <title>Google Maps - Catastro edition</title>
+    
+    <!-- Incluye codigo CSS incrustado en el propio html para compartir mas facil-->
+    <style type="text/css">
+        body {
+            background-color: #cecece;
+            width: 100%;
+            height: 100%;
+        }
+
+        #mapCanvas {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+    
+    <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false&&language=es&&region=ES"></script>
+    
+    <!-- Incluye codigo JS incrustado en el propio html para compartir mas facil-->
+    <script type="text/javascript">
+        var mapa = null;        //Mi mapa sobre el canvas
+        var catastro = null;    //el overlay del catastro
+
+        function cargaMapa(){
+            //1. Creo el mapa enmi canvas centrado en mi zona
+            let caimbo=new google.maps.LatLng(37.852,-3.729);           //Punto rural para pruebas
+            let myMapOptions = {
+                zoom:       16,                                 
+                center:     caimbo,                         
+                mapTypeId:  google.maps.MapTypeId.SATELLITE,
+                zoomControl: false,                 //Desactivo boton del tipo de mapa para tener un mapa mas limpio                  
+                mapTypeControl: true,              
+                scaleControl: false,
+                rotateControl: false,                     
+                streetViewControl: false, 
+            };
+            mapa = new google.maps.Map(document.getElementById("mapCanvas"), myMapOptions);
+        
+            //2. Creo los eventos que recargaran la vista del catastro (recalculada al nuevo bounding box)
+            google.maps.event.addListener(mapa,'dragend',function(){
+                overlay();
+            });
+        
+            google.maps.event.addListener(mapa, 'zoom_changed',function(){
+                overlay();
+            });
+        
+            google.maps.event.addListenerOnce(mapa, 'tilesloaded',function(){
+                overlay();
+            }); 
+
+        }
+
+        function overlay(){
+        //Solicita y sobre pone como un overlay el mapa del catastro
+
+            //1.'Despinta' el overlay anterior mientras recalcula para que no se duplique y maree al actualizar
+            if(this.catastro != null){
+                this.catastro.setMap(null)
+                this.catastro = null
+            }
+
+            //2. Consulto la imagen del catastro
+            //   Determino el bounding box, extremos de mi vista donde se solicita imagen catastral
+            let bounds = mapa.getBounds()
+            let ne = bounds.getNorthEast()
+            let sw = bounds.getSouthWest()
+        
+            //  Consulto la imagen del catastro
+
+            this.catastro = new google.maps.GroundOverlay(
+                "http://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?"  //Servidor del catastro
+                                                                                //Documentacion API==> http://www.catastro.meh.es/servicios/wms/wms.htm
+                +"SERVICE=WMS&&SRS=EPSG:4326"       //Sistema de coordenadas de Google Maps
+                +"&&REQUEST=GETMAP"
+                +"&&width="         +   "640"       //Resolcuion de la imagen descargada (Max 4000)
+                +"&&height="        +   "480"       //Resolcuion de la imagen descargada (Max 4000)
+                +"&&format="        +   "PNG"       //Formato de la imagen: JPG, GIF, BMP, (fondo blanco no transparente),TIF y WMF(no soportado por GoogleMaps) 
+                +"&&transparent="   +   "Yes"       //Transparencia
+                +"&&layers="        +   "CATASTRO"  //Capas(separadas por comas: CATASTRO (todas segun zoom), MASA, PARCELA, SUBPARCE, CONSTRU(construcciones), ELEMLIN (caminos y rios)    
+                //+"&&layers="        +   "MASA,PARCELA,SUBPARCE,CONSTRU,ELEMLIN"      //Capas sin leyendas    
+                //+"&&TIME="          +   "2018-05-13"//Historico catastral solicitado (AAAA>=2002)
+
+                +"&&bbox="          +   sw.lng()+","+sw.lat()+","+ne.lng()+","+ne.lat()//BoundingBox de la foto
+                ,mapa.getBounds()
+            );
+
+            //3. Refresco el mapa
+            this.catastro.setMap(mapa);
+        }
+    
+    </script>
+
+</head>
+
+<body onload="cargaMapa()">
+    <div id="mapCanvas"></div>
+</body>
+</html>
