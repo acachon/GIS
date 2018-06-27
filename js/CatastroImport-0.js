@@ -83,24 +83,6 @@ function overlay(){
         ,mapa.getBounds()
     );
 
- /*   
-    //Pruebo el servicio INSPIRE
-    this.catastro = new google.maps.GroundOverlay(
-        "http://ovc.catastro.meh.es/cartografia/INSPIRE/spadgcwms.aspx?"
-        +"service=wms&request=getmap"
-        +"&format=image/jpeg"
-        +"&width=1000&height=1000"
-        
-        +"&srs=epsg:23029"
-        +"&bbox=" + "512300,4663000,512500,4663200"
-        //"&srs=epsg:4326"
-        //"&bbox=" + sw.lng()+","+sw.lat()+","+ne.lng()+","+ne.lat()
-        
-        +"&layers=cp.cadastralparcel"
-        ,mapa.getBounds()
-    );
-  */  
-
     //3. Refresco el mapa
     this.catastro.setMap(mapa);
 }
