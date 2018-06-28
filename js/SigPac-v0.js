@@ -58,7 +58,22 @@ function cargaMapa(){
         console.log("La finca es: " + respuesta[0]);
     });
 
+    //Pruebo la direccion 
+    let newDir="https://www.sedecatastro.gob.es/Cartografia/DescargarGMLParcela.aspx?refcat=23900A015000050000SK&del=23&mun=900";
 
+    miAjaxGet(newDir, function(respuesta){
+        if (respuesta!= -1){
+            console.log("JSON del catastro recibido " + respuesta.responseXML.all);
+            miCallback(respuesta.responseXML.all[7].innerHTML+respuesta.responseXML.all[8].innerHTML);
+        }
+        else{
+            console.log("Error servidor catastro");
+            miCallback(respuesta);                  //refCatastral devuelta es -1
+        }
+            
+    });
+
+    
 }
 
 //Funciones locales y metodos
