@@ -5,11 +5,11 @@
         </title>
         <meta charset="utf-8">
         <link rel="stylesheet" type="text/css" href="./styles/estilo.css">
-        <script language="javascript" src="./js/3-archivosV0.js">
+        <script language="javascript" src="./js/3-archivosV1.js">
         </script>
    </head>
    <body>
-        <h2>Gestionando archivos</h2>
+        <h2>Gestionando archivos GML</h2>
 
         <br><label for="entrada">Referencia Catastral </label><input id="refCatastral" value="23900A01500005">
         <button id="boton" onclick="Ejecutar()">Buscar</button>
@@ -28,11 +28,6 @@
         </form>
 
         <input type="file" id="file-input"                      onchange="readSingleFile(this)" /><br>
-        <input type="file" id="fileinput2" style="display:none" onchange="readSingleFile(this)" />
-        <a href="#" onclick="openFileOption()">Abre tb un archvo sin el boton feo de input</a>
-        
-        <br><h3>Contents of the file:</h3>
-        <img  id="imagen1" src="../Cartografia/Descargas/me.jpg" alt="Imagen">
         <pre id="file-content">Contenido archivo aqui</pre>
 
    </body>
