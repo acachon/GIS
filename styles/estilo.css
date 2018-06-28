@@ -1,0 +1,18 @@
+div {
+    width: 100px;
+    height: 100px;
+    cursor: pointer;
+    border:2px solid blue;
+}
+
+div img {
+    height: 100%; 
+    width: 100%; 
+    object-fit: contain;
+}
+img {
+    height: 100; 
+    width: 100; 
+}
+
+
