@@ -27,9 +27,12 @@
         });
         //geoXml.parse('http://www.geocodezip.com/TrashDays40.xml');
         geoXml.parse("https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A015000050000SK&del=23&mun=900&tipo=3d");
+    
     };
 
     function useTheData(doc) {
+        //TODO Almacenar el nuevo doc en una array para que se pueda gestionar en el futuro. Mirar si es una referenia o una copia
+
         // Geodata handling goes here, using JSON properties of the doc object
         var sidebarHtml = '<table><tr><td><a href="javascript:showAll();">Show All</a></td></tr>';
 

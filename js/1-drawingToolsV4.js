@@ -46,7 +46,7 @@ function initMap() {
     google.maps.event.addDomListener(document.getElementById("map_canvas"), 'keydown', 
         function (e) {
             selectingFlag = ((e.ctrlKey == true) || (e.keyIdentifier == 'Control') );
-            console.log("Ctrl pressed again");
+            console.log("Key pressed again");
         }
     );
     google.maps.event.addDomListener(document.getElementById("map_canvas"), 'keyup', 
@@ -149,16 +149,25 @@ function initMap() {
         strokeWeight: 5
     });
 
+    //Probando integracion con Catastro !!
+    //------------------------------------
 
-    //Muestro posicion al hacer click
-    var miLatLng = new google.maps.LatLng(37.852, -3.729);    //Caimbo
-    miPosicion(miLatLng);
-
+    //1. Muestro RC y su KML de las coordenadas al hacer CTRL+click en el mapa
+    //Creo el listener del click en el map y llamo a ejecutar una accion con sus coordenadas
+    google.maps.event.addDomListener(map, 'click', 
+        function (e) {
+            if (selectingFlag && drawingManager.drawingMode==null){     //Si esta apretado el [CTRL] y no esta editando formas (modo mano)
+                selectingFlag=false;        //Desmarco la tecla [CTRL]
+                mostrarRC(e.latLng);        //Soliciito RC al catastro y lo muestro en Visor y ventana lateral
+            }
+        }
+    );
 
 }
 
+
 //----------------------------//
-// FUNCIONES GLOBALES         //
+// FUNCIONES LOCALES          //
 //----------------------------//
 
 // Creo los listener para desactivar la edicion y activarla cuando se edite la forma
@@ -481,28 +490,126 @@ function copiarOverlays(){
 
 }
 
-function miPosicion(miLatLng){
-//TODO: ejecuta una accion con las coordenadas pasada: pintar en ventana resultados o recuperar la RefCatastral de las mismas
-    //Muestra las coordenadas
-    document.getElementById("content-window").innerText +=   "\nLat: " + Math.round(miLatLng.lat()*1000)/1000
-                                                       +"\nLng: " + Math.round(miLatLng.lng()*1000)/1000;
-    //Solicito la RC del catastro para esas coordenadas
-    
+
+function mostrarRC(miLatLng){
+//TODO: ejecuta una accion con las coordenadas pasadas: pintar en ventana resultados y la RefCatastral *consulta catastro) en el visor
+    //1. Muestra las coordenadas en la ventana lateral
+    document.getElementById("content-window").innerText +=  "\nLat: " + Math.round(miLatLng.lat()*1000)/1000
+                                                            +"\nLng: " + Math.round(miLatLng.lng()*1000)/1000;
+    //Solicito la RC del Catastro para esas coordenadas y la muestro en el visor
+    refCatastralCoordenadas(miLatLng, function(respuesta){
+        //2. Muestro el RC en el visor inferior 
+        document.getElementById("info-box").innerText=respuesta;
+        
+        //3. Muestro la capa KML en el mapa
+        geoXmlNew = new geoXML3.parser({
+            map: map,
+            singleInfoWindow: true,
+            afterParse: useTheData
+        });
+        geoXmlNew.parse("https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="+ respuesta +"&del=23&mun=900&tipo=3d");
+
+    });
 }
 
 
+//------------------------------//
+//  Servicios Web del Catastro  //
+//------------------------------//
 
-/*TODO: probar esta funcion para recuperar las coordenadas (o otra property) de cada feature del geoJSON
-var eid = 30;
+/**
+ * @description Devuelve las coordenadas del centroide de una referencia catatral dada por su RC
+ * @param {*} refCatastral:  referencia catastral de la que obtener las coordenadas de su centroide. Es tipo string de 14 caracteres
+ * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro coordendas que es un .latLng()
+ * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
+ * 
+ * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?
+ * @requires    function miAjaxGet(miUrl, miCallback) 
+ * @returns     Array con [nombre, lat(), lng()]     
+ */
+function coordenadasRefCatastral(refCatastral, miCallback){ 
 
-map.data.forEach(function(feature){
-    if(feature.getProperty('eid') === eid){
-        LatLng = feature.getGeometry().get();
-        id = feature.getProperty('id');
+    //Construyo la direccion y los parametros de la llamada al catastro
+    let url="https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_CPMRC?Provincia=&Municipio="
+    +"&SRS=EPSG:" + "4326"                     //Sistemas de coordenadas usado por googleMaps
+    +"&RC=" + refCatastral;
+    
+    //Llamo al catastro y espero la respuesta para actualizar la variable de salida
+    miAjaxGet(url, function(respuesta){
+        if (respuesta!= -1){
+            console.log("JSON del catastro recibido " + respuesta.responseXML);
+            miCallback([respuesta.responseXML.all[13].innerHTML,        // Nombre (ldt)
+                        respuesta.responseXML.all[11].innerHTML,        // lat()    
+                        respuesta.responseXML.all[10].innerHTML]);      // lng()
+        }
+        else{
+            console.log("Error servidor catastro");
+            miCallback(respuesta);                  //refCatastral devuelta es -1
+        }    
+    });
+}
 
-        //Elimina esa feature del map.data
-        map.data.remove(feature);
-    } 
-  });
-  var cloneObjeto = objeto.cloneNode(true);
-*/
+/**
+ * @description Devuelve la referencia catastral de unas coordenadas
+ * @param {*} coordenadas:  coordenadas del punto al que calcular RefCatastral. Es tipo .latLng(), i.e. {lat: 37.8555 ,lng:-3.7555}
+ * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro refCastastral que es un String (14 digitos)
+ * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
+ * 
+ * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?
+ * @requires    function miAjaxGet(miUrl, miCallback) 
+ * @returns     (modficacion) nombre de la parcela tambien se podria devolver si se llama al callback con respuesta.responseXML.all[13].innerHTML     
+ */
+function refCatastralCoordenadas(coordenadas, miCallback){ 
+
+    //Construyo la direccion y los parametros de la llamada al catastro
+    let url="https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?"
+    +"SRS=EPSG:" + "4326"                     //Sistemas de coordenadas usado por googleMaps
+    +"&Coordenada_X=" + coordenadas.lng()  
+    +"&Coordenada_Y=" + coordenadas.lat();
+    
+    //Llamo al catastro y espero la respuesta para actualizar la variable de salida
+    miAjaxGet(url, function(respuesta){
+        if (respuesta!= -1){
+            console.log("JSON del catastro recibido " + respuesta.responseXML.all);
+            miCallback(respuesta.responseXML.all[7].innerHTML+respuesta.responseXML.all[8].innerHTML);
+        }
+        else{
+            console.log("Error servidor catastro");
+            miCallback(respuesta);                  //refCatastral devuelta es -1
+        }
+            
+    });
+}
+
+/**
+ * @description Llamada asincrona con Http GET al servidor (miUrl) para llamar con la respuesta recibida a miCallback cuando este disponible
+ * @param {*} miUrl         Direccion del servidor que recibe el GET y presta el servicio
+ * @param {*} miCallback    Funcion que recibe como parametro l arespuesta del servidor al GET y que es llamada asincronamente
+ * @example     miAjaxGet("http://localhostx:3000/imagenes", function(respuesta){ console.log("La respuesta es " + respuesta); });
+ * 
+ * @returns     devuelve -1 si hay un error del servidor y no responde Ok. Si todo OK devuelve lo que se le pasa (JSON, XML, ...)
+ */
+function miAjaxGet(miUrl, miCallback) {
+
+    var request = new XMLHttpRequest(); 
+    request.open("GET", miUrl, true);                       //Asincrona = true
+    
+    //Creo el listener que llama a 'miCallback'
+    request.addEventListener("load", function() {
+    if (request.status >= 200 && request.status < 400) {    //Status ha ido bien
+        miCallback(request);                                //Llamo a miCallback con la respuesta    
+    } else {
+        miCallback(-1);                                     //Devuelve -1 en caso de error 
+        console.error("miAjaxGET error: " + request.status + "- " + request.statusText); //Error de servidor
+    }
+    });
+
+    //Creo el listener que gestiona los errores 
+    request.addEventListener("error", function(){
+        miCallback(-1);                                         //Devuelve -1 en caso de error 
+        console.error("miAjaxGET error: error de conexión");        //La llamada al servidor ha fallado
+    });
+
+    //Finalmente lanzo la peticion al servidor
+    request.send(null);
+}
