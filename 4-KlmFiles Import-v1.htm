@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <title>Reading KML Files with Google Maps JavaScript API Version 3</title>
+
+    <style type="text/css">
+        html,
+        body,
+        #map_canvas {
+            width: 750px;
+            height: 600px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .infowindow * {
+            font-size: 90%;
+            margin: 0
+        }
+    </style>
+
+    <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+    <script type="text/javascript" src="https://cdn.rawgit.com/geocodezip/geoxml3/master/polys/geoxml3.js"></script>
+    <script type="text/javascript" src="https://cdn.rawgit.com/geocodezip/geoxml3/master/ProjectedOverlay.js"></script>
+    <script type="text/javascript" src="./js/4-importGeoxml3-V1.js"></script>
+</head>
+
+<body onload="initialize()">
+    <h4>Importar parcela catastral (formato KML) elemento por elemento.</h4>
+
+    <button onclick="hide_kml();">hide</button>
+    <button onclick="unhide_kml();">unhide</button>
+
+    <table style="width:100%;">
+        <tr>
+            <td>
+                <div id="map_canvas"></div>
+            </td>
+            <td>
+                <div id="sidebar" style="width:300px;height:600px; overflow:auto"></div>
+            </td>
+        </tr>
+    </table>
+
+    <div id="map_text"></div>
+
+</body>
+
+</html>

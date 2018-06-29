@@ -11,6 +11,7 @@
 9. 
 
 */
+console.log("Arranca el script drawingToolsV4");
 
 //Variables globales
 var map;                            //Controlador del Mapa
@@ -28,12 +29,12 @@ function initMap() {
 //Tambien crea la barra de dibujo y sus listeners (click(editar), rightclick(borrar)) 
 
     //1. MAPA: Configuro el objeto mapa y los valores por defecto
-    map = new google.maps.Map(document.getElementById("map"), {
+    map = new google.maps.Map(document.getElementById("map_canvas"), {
         center: {lat: 37.852, lng: -3.729}, //El Caimbo
         zoom: 16,                           
         mapTypeId: "satellite",	            //"terrain", "roadmap", "hybrid", "false" (no pinta nada pero funciona)
         zoomControl: false,                 //Desactivo boton del tipo de mapa para tener un mapa mas limpio                  
-        mapTypeControl: false,              //Desactivo boton del zoom para tener un mapa mas limpio
+        mapTypeControl: true,              //Desactivo boton del zoom para tener un mapa mas limpio
         scaleControl: true,
         rotateControl: true,                     
         streetViewControl: false,           //Sin el control de Streetview                
@@ -42,13 +43,13 @@ function initMap() {
     });
 
     //Creo un listener DOM para saer cuando se aprieta el Ctrl (seleccion multiple)
-    google.maps.event.addDomListener(document.getElementById("map"), 'keydown', 
+    google.maps.event.addDomListener(document.getElementById("map_canvas"), 'keydown', 
         function (e) {
             selectingFlag = ((e.ctrlKey == true) || (e.keyIdentifier == 'Control') );
             console.log("Ctrl pressed again");
         }
     );
-    google.maps.event.addDomListener(document.getElementById("map"), 'keyup', 
+    google.maps.event.addDomListener(document.getElementById("map_canvas"), 'keyup', 
         function (e) {
             selectingFlag = false;
         }
@@ -147,12 +148,12 @@ function initMap() {
         visible: true,
         strokeWeight: 5
     });
-    //B. KLM
-    //C. FusionTables
 
-    //4. Copio nodos
-    //var copias = copiarOverlays();
-    //console.log("Copias:" + copias);
+
+    //Muestro posicion al hacer click
+    var miLatLng = new google.maps.LatLng(37.852, -3.729);    //Caimbo
+    miPosicion(miLatLng);
+
 
 }
 
@@ -480,7 +481,14 @@ function copiarOverlays(){
 
 }
 
-
+function miPosicion(miLatLng){
+//TODO: ejecuta una accion con las coordenadas pasada: pintar en ventana resultados o recuperar la RefCatastral de las mismas
+    //Muestra las coordenadas
+    document.getElementById("content-window").innerText +=   "\nLat: " + Math.round(miLatLng.lat()*1000)/1000
+                                                       +"\nLng: " + Math.round(miLatLng.lng()*1000)/1000;
+    //Solicito la RC del catastro para esas coordenadas
+    
+}
 
 
 

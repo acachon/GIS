@@ -1,0 +1,55 @@
+/* Map height explicitly to define the size of the div containing the map. */
+#map_canvas { 
+    height: 100%;
+    float: left;
+    height: 100%;
+    width: 79%;
+    box-sizing: border-box;
+    border: 1px solid black;
+}
+#content-window {
+    float: left;
+    height: 25%;
+    line-height: 30px;
+    padding-left: 10px;
+    width: 19%;
+    white-space: nowrap; 
+    overflow: auto;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    border: 1px solid black;
+}
+#content-window2 {
+    float: left;
+    height: 25%;
+    line-height: 30px;
+    padding-left: 10px;
+    width: 19%;
+    box-sizing: border-box;
+    border: 1px solid black;
+}
+#sidebar {
+    float: left;
+    height: 50%;
+    line-height: 30px;
+    padding-left: 10px;
+    width: 19%;
+    box-sizing: border-box;
+    border: 1px solid black;
+    overflow:auto;
+}
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+#info-box {
+    background-color: white;
+    border: 1px solid black;
+    position: absolute;
+        bottom: 5px;
+        left: 5px;
+    height: 10px;
+    padding: 10px;
+    font-size: 12pt;
+}
