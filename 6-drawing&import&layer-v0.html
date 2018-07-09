@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Drawing tools</title>
+        <meta charset="utf-8" name="viewport" content="initial-scale=1.0, user-scalable=no">
+        <link rel="stylesheet" type="text/css" href="./styles/estiloMapas4.css">
+ 
+        <script type="text/javascript" src="./js/4-importGeoxml3-V1.js"></script>
+        <script type="text/javascript" src="https://cdn.rawgit.com/geocodezip/geoxml3/master/polys/geoxml3.js"></script>
+        <script type="text/javascript" src="https://cdn.rawgit.com/geocodezip/geoxml3/master/ProjectedOverlay.js"></script>
+
+    </head>
+    <body onload="initialize()">
+        <div id="map_canvas"></div>
+        <div id="info-box">Respuesta</div>
+        <div id="sidebar">Respuesta</div>
+        <div id="content-window">Aqui puedo mostrar resultados</div>
+        <div id="content-window2">Aqui muestro botones
+            <br><button id="boton1" onclick="copiarOverlays()">Copiar</button>
+        </div>
+
+        <div class="dropdown">
+            <button onclick="capasClick()" class="dropbtn">Capas</button>
+              <div id="myDropdown" class="dropdown-content">
+                <a href="#home">Home
+                    <span id="#A" style="float:right;color: red">A</span>
+                    <span id="#B" style="float:right;color: red">B</span>
+                    <span id="#C" style="float:right;color: red">C</span>
+
+                </a>
+                <a href="#about">About
+                    <span id="#img1" style="float:right"><img class="imagen" src="./img/delgado.png"></span>
+                    <span id="#img2" style="float:right"><img class="imagen" src="./img/desnutrido.png"></span>
+                    <span id="#img3" style="float:right"><img class="imagen" src="./img/delgado.png"></span>
+                </a>
+                <a href="#contact">Contact
+                    <span id="#ver" style="float:right"><img class="imagen" src="./img/visible.png" onclick="alert('Ojo');"></span>
+                    <span id="#seleccionar" style="float:right"><img class="imagen" src="./img/seleccionar.png" onclick="alert('Flecha');"></span>
+                    <span id="#editar" style="float:right"><img class="imagen" src="./img/edit.png" onclick="alert('Lapiz');"></span>
+                </a>
+              </div>
+        </div>
+
+        <script language="javascript" src="./js/1-drawingToolsV5.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCRbr23Yvm71EcdyAP2QK8dr_W2rh6usJs&libraries=drawing,geometry&callback=initMap" async defer>
+            //Libreria Drawing para los controles de dibujo, la de geometry para contar dentro del poligono 
+        </script>
+    </body>
+</html>
