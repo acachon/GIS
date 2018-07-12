@@ -30,6 +30,22 @@
  *
  * @constructor
  */
+
+console.log("Arranca el script geoxml3");
+
+//----------------------//
+//Variables globales    //
+//----------------------//
+
+var defaultStyle = {
+    color: "ff000000", // black
+    colorMode: "normal",
+    width: 1,
+    fill: true,
+    outline: true,
+    fillcolor: "3fff0000" // blue
+};
+
 // only if Google Maps API included
 if (!!window.google && !!google.maps) {
     function MultiGeometry(multiGeometryOptions) {
@@ -219,14 +235,7 @@ geoXML3.parser = function (options) {
         }
     };
 
-    var defaultStyle = {
-        color: "ff000000", // black
-        colorMode: "normal",
-        width: 1,
-        fill: true,
-        outline: true,
-        fillcolor: "3fff0000" // blue
-    };
+
 
     function processStyle(thisNode, styles, styleID) {
         var nodeValue = geoXML3.nodeValue;

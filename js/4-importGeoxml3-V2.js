@@ -1,6 +1,11 @@
 /**
- * Script para importar capas KML con gexml3 y modificar su formato elemento por elemento
- * 
+ * Script para presentar en pantalla la capa KML importada
+ * 0. Carga un fichero KML eterminado al inicializarse a modo de ejemplo
+ * 1. Muestra los poligonos importados
+ * 2. Muestra listado en ventana lateral
+ * 3. Visalizacion dinamica cuando para el raton o se selecciona a la derecha
+ * 4. Override del estilo que indique el fichero orginal KML
+ * 5. 
  */
     console.log("Arranca el script importGeoxml3-V1");
 
@@ -28,8 +33,9 @@
         strokeOpacity: 1, 
     };
     
-    const defaultColor    = "#FFFF00";
-    const defaultOpacity  = 0.5;
+    //Solo para cuando se coge el estilo del KML y este viene vacio
+    const defaultColor    = "#008000";
+    const defaultOpacity  = 0.3;
 
     //------------------------------------------//
     //Funciones y metodos de este componente    //
@@ -49,14 +55,12 @@
 
     function useTheData(doc) {
     //TODO Almacenar el nuevo doc en una array para que se pueda gestionar en el futuro. Mirar si es una referenia o una copia
-
         //Construyo el codigo html de la ventana lateral con la info de la parcela
         var sidebarHtml = '<table><tr><td><a href="javascript:showAll();">Show All</a></td></tr>';
 
         geoXmlDoc = doc[0];
-        for (var i = 0; i < geoXmlDoc.gpolygons.length; i++) {
         //Recorro todas las poligonales de la capa KML (subparcelas) para ponerlas en el sidebar y darles formato
-          
+        for (var i = 0; i < geoXmlDoc.gpolygons.length; i++) {
             /* AJC: He sustituido por una variable estatica (normalStyle) donde defino los colores para todo tipo de parcela
             //Por cada poligonal (placemark), recupero el formato/stylo
             var placemark = geoXmlDoc.placemarks[i];
@@ -83,6 +87,7 @@
         document.getElementById("sidebar").innerHTML = sidebarHtml;
     };
 
+    //--------------------------------------------------------------//
     //Funciones para visualizacion de la capa KML y sus subparcelas //
     //--------------------------------------------------------------// 
 
