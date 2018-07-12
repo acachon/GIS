@@ -23,6 +23,36 @@ var migeoJSON;                      //Solo puedo llamar a funciones externas a i
 var ruta;
 var puntos;
 
+// Gestion de capas //
+const layersOptions = {
+//Iconos e informacion estatica para el menu de control de capas
+    iconViewable:       "./img/visible.png",
+    iconNotViewable:    "./img/visible.png",
+    
+    iconClickable:       "./img/seleccionar.png",
+    iconNotClickable:    "./img/seleccionar.png",
+
+    iconEditable:       "./img/edit.png",
+    iconNotEditable:    "./img/edit.png",
+}
+
+var layersControl = [
+//Informacion de cada capa gestionada, incluyendo su estado.
+    {
+        layerID:        0,
+        layerName:      "Mapas",
+        flagViewable:   true,
+        flagClickable:   false,
+        flagEditable:   false,
+    },
+    {
+        layerID:        1,
+        layerName:      "Catastro",
+        flagViewable:   true,
+        flagClickable:   true,
+        flagEditable:   false,
+    },
+]
 
 function initMap() {
 //Esta funcion es el callback cuando se carga el API de Google
@@ -614,26 +644,30 @@ function miAjaxGet(miUrl, miCallback) {
     request.send(null);
 }
 
-//Menu desplegable de las capas
+//------------------------------//
+//Menu desplegable de las capas //
+//------------------------------//
+
 function capasClick(){
 // When user clicks, toggle between hiding and showing dropdown content
     document.getElementById("myDropdown").classList.toggle("show");
 }
 
-// Close the dropdown menu if the user clicks outside of it
-//Sobrecarga mucho el codigo porque siempre se hace click ...
-//si quieres cerrar el menu, debes volver a pulsar el boton
-/*
-window.onclick = function(event) {
-  if (!event.target.matches('.dropbtn') && !event.target.matches('.dropdown-content')) {
-    var dropdowns = document.getElementsByClassName("dropdown-content");
-    var i;
-    for (i = 0; i < dropdowns.length; i++) {
-      var openDropdown = dropdowns[i];
-      if (openDropdown.classList.contains('show')) {
-        openDropdown.classList.remove('show');
-      }
-    }
-  }
+function toogleViewable (layerID){
+//Cambia de visible a no visible y viceversa el contenido de la capa indicada por su layerID
+    console.log("Cambia Viewable del LayerID: " + layerID + " (" + !layersControl[layerID].flagViewable + ")");
+    layersControl[layerID].flagViewable ? geoXml.hideDocument() : geoXml.showDocument() ;   //Show or hide
+    layersControl[layerID].flagViewable = !layersControl[layerID].flagViewable;             //toggle status flag
 }
-*/
+
+function toogleClickable (layerID){
+//Cambia de seleccionable a no'selecccionable y viceversa el contenido de la capa indicada por su layerID
+    console.log("Cambia Clickable del LayerID: " + layerID + " (" + !layersControl[layerID].flagClickable + ")");
+
+    //Hace seleccionable la capa
+    //Pruebo con el atributo clickable del marcador primero ....
+    console.log("Marker clickable?: " + geoXml.docs[0].markers[0].clickable);
+    geoXml.docs[0].markers[0].clickable =   !geoXml.docs[0].markers[0].clickable;
+
+    layersControl[layerID].flagClickable = !layersControl[layerID].flagClickable;             //toggle status flag
+}

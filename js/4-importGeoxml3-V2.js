@@ -44,22 +44,44 @@
     function initialize() {
         //Inicializo el objeto geoXml ligada al map y con un callback (useTheData)
         geoXml = new geoXML3.parser({
-            map: map,
-            singleInfoWindow: true,
-            afterParse: useTheData      //Funcion llamada tras concluir el parse del fichero KML
+            map: map,               // Mapa en el que visualizar la capa KML importada
+            zoom: true,             // Hace zoom a la capa KML cargada 
+            singleInfoWindow: true, // Muestra solo una ventana de info al clickar (la ultima), desapareciendo las demas      
+            afterParse: useTheData, // Funcion llamada tras concluir el parse del fichero KML
         });
 
-        //Importo una parcela a modo de ejemplo (Caimbo)
-        geoXml.parse("https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A015000050000SK&del=23&mun=900&tipo=3d");
+        //Importo una parcela a modo de ejemplo (Caimbo) del catastro
+        const webServ   = "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?";
+        const provincia = 23;       //Jaen
+        const municipio = 900;      //Jaen
+        const sector    = "A"       //Sector A
+        const poligono  = "015";    //Grañena
+        const parcela   = "00005";  //Caimbo
+
+        geoXml.parse(
+            "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?"
+            + "refcat=" + provincia + municipio + sector + poligono + parcela
+            + "&del=" + provincia
+            + "&mun=" + municipio
+            + "&tipo=3d"
+            );
+
+        /*Carga multiple de KML simulateamente
+        geoXml.parse([
+            "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A015000050000SK&del=23&mun=900&tipo=3d",
+            "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A01000045&del=23&mun=900&tipo=3d",
+            ]);
+        */
     };
 
     function useTheData(doc) {
-    //TODO Almacenar el nuevo doc en una array para que se pueda gestionar en el futuro. Mirar si es una referenia o una copia
+    //Crea un listado (html a incrustar) dinamico en la ventana lateral con las parcelas importadas
+    
         //Construyo el codigo html de la ventana lateral con la info de la parcela
-        var sidebarHtml = '<table><tr><td><a href="javascript:showAll();">Show All</a></td></tr>';
+        var sidebarHtml = '<table><tr><td><a href="javascript:showAllPoly();">Show All</a></td></tr>';
 
+        //Recorro todas las poligonales de la capa KML (subparcelas) para ponerlas en el sidebar y darles formato   
         geoXmlDoc = doc[0];
-        //Recorro todas las poligonales de la capa KML (subparcelas) para ponerlas en el sidebar y darles formato
         for (var i = 0; i < geoXmlDoc.gpolygons.length; i++) {
             /* AJC: He sustituido por una variable estatica (normalStyle) donde defino los colores para todo tipo de parcela
             //Por cada poligonal (placemark), recupero el formato/stylo
@@ -111,7 +133,7 @@
         }
     }
 
-    function showAll() {
+    function showAllPoly() {
     //Muestra todas las subparcelas y ajusta el zoom para verse todas
         //Ajusto el zoom
         map.fitBounds(geoXmlDoc.bounds);
@@ -146,10 +168,10 @@
         geoXmlDoc.gpolygons[polyID].setOptions(geoXmlDoc.gpolygons[polyID].normalStyle);
     }
 
-
+    //-----------------------------------------//
     //Funciones utiles para usar en su momento //
-    //----------------------------------------//
-
+    //-----------------------------------------//
+    /*
     function kmlShowMarkers(flag) {
     //Muestra o no los marcadores KML segun indique el flag (true or false)
         for (var i = 0; i < geoXmlDoc.markers.length; i++) {
@@ -205,3 +227,4 @@
         }
         return kmlColor;
     }
+    */

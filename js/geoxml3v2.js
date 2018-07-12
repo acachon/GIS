@@ -1,12 +1,9 @@
 /**
- * A MultiGeometry object that will allow multiple polylines in a MultiGeometry
- * containing LineStrings to be treated as a single object
- *
- * @param {MutiGeometryOptions} anonymous object.  Available properties:
- * map: The map on which to attach the MultiGeometry
- * paths: the individual polylines
- * polylineOptions: options to use when constructing all the polylines
- *
+ * Mis notas sobre este componente
+ * 
+ * 1. supressInfoWindow en las parseOptions hace que al cargar no se muestren ventanas. Se puede usar para el boton not-clickable?
+ * 2. parseOnly es un atributo que indica que solo se trae el fichero?
+ * 3. 
  */
 
 console.log("Arranca el script geoxml3");
@@ -15,7 +12,39 @@ console.log("Arranca el script geoxml3");
 //Variables globales    //
 //----------------------//
 
-var defaultStyle = {
+//Opciones del tipo de parsing a realizar
+const defaultParserOptions = {
+    //Opciones de parsing
+    suppressInfoWindows: false,                     // Muestra las ventanas de info al clickar (false) o no (true)
+    singleInfoWindow: true,                         // Mantiene visibles las ventanas de info al clickar (las clickadas)
+    processStyles: false,                           // Lo dejo en principio a false para no hacer processStyles, processStyleID pero habra que matar esta llamada inutil
+    zoom: true,                                     // No hace zoom a la capa cargada
+    xhrTimeout: 60000,                              // Timeout maximo (6 seg) para cargar el archivo KML
+
+    //Opciones de estilo
+    polygonOptions: {
+        strokeColor: "#FFFFFF",     //blanco
+        strokeWeight: 2,
+        strokeOpacity: 0.5,
+        fillColor: "#008000",       //Verde mini
+        fillOpacity: 0.2
+    },
+    markerOptions: {
+        //icon: "img/edit.png",
+        //shadow: "",
+    },    
+    infoWindowOptions: {
+        //pixeloffstet: "",
+    },
+    polylineOptions: {  //No hay polilineas en Catastro, son todo poligonos y el marcador de la parcela
+        strokeColor: "#000000",
+        strokeWeight: 20,
+        strokeOpacity: 1,
+    },
+};
+
+//Estilo de las geometrias por defecto en caso de que no se indiquen en el KML (vacio)
+const defaultStyle = {
     color: "ff000000", // black
     colorMode: "normal",
     width: 1,
@@ -26,15 +55,15 @@ var defaultStyle = {
 
 // Declare namespace
 geoXML3 = window.geoXML3 || { instances: [] };
-// Retrieve an XML document from url and pass it to callback as a DOM document
 geoXML3.fetchers = [];
 
 //------------------------------------------//
 // Funciones y metodos de este componente   //
 //------------------------------------------//
 
-// only if Google Maps API included
-if (!!window.google && !!google.maps) {
+//Creo una clase MultiGeometry que incluye las mismas propiedades en cada polilinea
+// y les crea un listener a cada una
+if (!!window.google && !!google.maps) { 
     function MultiGeometry(multiGeometryOptions) {
         function createPolyline(polylineOptions, mg) {
             var polyline = new google.maps.Polyline(polylineOptions);
@@ -49,8 +78,9 @@ if (!!window.google && !!google.maps) {
             return polyline;
         }
         this.setValues(multiGeometryOptions);
+        
+        //Creo las polilineas en el mapa con las mismas opciones y un mismo listener para todas ellas.         
         this.polylines = [];
-
         for (i = 0; i < this.paths.length; i++) {
             var polylineOptions = multiGeometryOptions;
             polylineOptions.path = this.paths[i];
@@ -59,17 +89,18 @@ if (!!window.google && !!google.maps) {
             this.polylines.push(polyline);
         }
     }
+
     MultiGeometry.prototype = new google.maps.MVCObject();
+    MultiGeometry.prototype.setMap = function (map) { this.set('map', map); };
+    MultiGeometry.prototype.getMap = function () { return this.get('map'); };
     MultiGeometry.prototype.changed = function (key) {
-        // alert(key+" changed");
         if (this.polylines) {
             for (var i = 0; i < this.polylines.length; i++) {
                 this.polylines[i].set(key, this.get(key));
             }
         }
     };
-    MultiGeometry.prototype.setMap = function (map) { this.set('map', map); };
-    MultiGeometry.prototype.getMap = function () { return this.get('map'); };
+
 }
 
 // Extend the global String object with a method to remove leading and trailing whitespace
@@ -79,30 +110,31 @@ if (!String.prototype.trim) {
     };
 }
 
-
+//--------------------------------------------------------------//
 // Constructor for the root KML parser object
+// 1. options if provided (defaultParserOptions) override default 
+// 2. Crea el docs[]
+// 3. Pinta en el mapa y crea los placemarks en googleMaps
+// 4. CRea un listener (click) para mostrar infoWindow  
+//--------------------------------------------------------------//
 geoXML3.parser = function (options) {
+    
     // Inherit from Google MVC Object to include event handling   
     google.maps.MVCObject.call(this);
 
-    // Private variables
-    var parserOptions = geoXML3.combineOptions(options, {
-        singleInfoWindow: false,
-        processStyles: true,
-        zoom: true
-    });
-    var docs = []; // Individual KML documents
-    var lastPlacemark;
-    var parserName;
-    if (typeof parserOptions.suppressInfoWindows == "undefined") parserOptions.suppressInfoWindows = false;
-    if (!parserOptions.infoWindow && parserOptions.singleInfoWindow && !!window.google && !!google.maps)
-        parserOptions.infoWindow = new google.maps.InfoWindow();
+    // parseOptions: Private variables are overrided by options in case provided
+    var parserOptions = geoXML3.combineOptions(options, defaultParserOptions);
+    parserOptions.infoWindow = new google.maps.InfoWindow();
+    geoXML3.xhrTimeout = parserOptions.xhrTimeout;  //timeout maximo para cargar archivo KML (1min por defecto)
 
-    geoXML3.xhrTimeout = 60000;
-    if (!!parserOptions.xhrTimeout) geoXML3.xhrTimeout = parserOptions.xhrTimeout;
+    var docs = [];                              // Individual KML documents cargados
+    var parserName;         
+
+    // Metodos y funciones del constructor del geoXML3.parser   //
+    //----------------------------------------------------------//
 
     var parseKmlString = function (kmlString, docSet) {
-        // Internal values for the set of documents as a whole
+    // Internal values for the set of documents as a whole
         var internals = {
             parser: this,
             docSet: docSet || [],
@@ -115,28 +147,42 @@ geoXML3.parser = function (options) {
         render(geoXML3.xmlParse(kmlString), thisDoc);
     }
 
+    // 1. CReo los objetos doc y los atributos,url, etc para importar y llamo al importador
     var parse = function (urls, docSet) {
-        // Process one or more KML documents
+    // Process one or more KML documents
+    // urls es un array de string con las rutas de cada KML a importar
+    // Llama al importador de ficheros 
+
+        //Varibales internas para el parsing
+        //----------------------------------//
         if (!parserName) {
             parserName = 'geoXML3.instances[' + (geoXML3.instances.push(this) - 1) + ']';
         }
 
-        if (typeof urls === 'string') {
-            // Single KML document
+        //Si solo le paso un string con una KML, lo meto en el [0] del array de urls
+        if (typeof urls === 'string') { 
             urls = [urls];
         }
 
         // Internal values for the set of documents as a whole
         var internals = {
             parser: this,
-            docSet: docSet || [],
+            docSet: docSet || [],               //Almaceno el listado de documentos (capas KML, definidas por su baseUrl) que proceso
             remaining: urls.length,
             parseOnly: !(parserOptions.afterParse || parserOptions.processStyles)
         };
+
+        //Comienza el parsing   //
+        //----------------------//
+
+        // 1. CReo un documento por cada capa KML a crear y le asigno las opciones por defecto
         var thisDoc, j;
-        for (var i = 0; i < urls.length; i++) {
+        for (var i = 0; i < urls.length; i++) {         
+        //Recorro cada url para repetirlo con cada capa solicitada
             var baseUrl = urls[i].split('?')[0];
-            for (j = 0; j < docs.length; j++) {
+
+            //Miro si el documento ya lo tengo y lo Recargo en caso de que tenga la misma base que uno anterior    
+            for (j = 0; j < docs.length; j++) {     
                 if (baseUrl === docs[j].baseUrl) {
                     // Reloading an existing document
                     thisDoc = docs[j];
@@ -144,191 +190,33 @@ geoXML3.parser = function (options) {
                     break;
                 }
             }
-            if (j >= docs.length) {
+
+            //Si no se trata de un documento repetido, creo uno nuevo y lo almaceno en mi var internals
+            if (j >= docs.length) {         
                 thisDoc = new Object();
                 thisDoc.baseUrl = baseUrl;
                 internals.docSet.push(thisDoc);
             }
+
+            //Iniciliazo el docuemnto con los datos de la url requerida
             thisDoc.url = urls[i];
             thisDoc.internals = internals;
             var url = thisDoc.url;
-            if (parserOptions.proxy) url = parserOptions.proxy + thisDoc.url;
+            if (parserOptions.proxy) url = parserOptions.proxy + thisDoc.url;       //Se puede definir una opcion proxy con la ruta a los KML
+
+            //LLamo a la funcion que importa el fichero KML y llama al render
             fetchDoc(url, thisDoc);
         }
     };
 
+    // 2. Importo el fichero del servidor y llamo al render en callback para añadirlo a doc
     function fetchDoc(url, doc) {
         geoXML3.fetchXML(url, function (responseXML) { render(responseXML, doc); })
     }
 
-    var hideDocument = function (doc) {
-        if (!doc) doc = docs[0];
-        // Hide the map objects associated with a document 
-        var i;
-        if (!!window.google && !!google.maps) {
-            if (!!doc.markers) {
-                for (i = 0; i < doc.markers.length; i++) {
-                    if (!!doc.markers[i].infoWindow) doc.markers[i].infoWindow.close();
-                    doc.markers[i].setVisible(false);
-                }
-            }
-            if (!!doc.ggroundoverlays) {
-                for (i = 0; i < doc.ggroundoverlays.length; i++) {
-                    doc.ggroundoverlays[i].setOpacity(0);
-                }
-            }
-            if (!!doc.gpolylines) {
-                for (i = 0; i < doc.gpolylines.length; i++) {
-                    if (!!doc.gpolylines[i].infoWindow) doc.gpolylines[i].infoWindow.close();
-                    doc.gpolylines[i].setMap(null);
-                }
-            }
-            if (!!doc.gpolygons) {
-                for (i = 0; i < doc.gpolygons.length; i++) {
-                    if (!!doc.gpolygons[i].infoWindow) doc.gpolygons[i].infoWindow.close();
-                    doc.gpolygons[i].setMap(null);
-                }
-            }
-        }
-    };
-
-    var showDocument = function (doc) {
-        if (!doc) doc = docs[0];
-        // Show the map objects associated with a document 
-        var i;
-        if (!!window.google && !!google.maps) {
-            if (!!doc.markers) {
-                for (i = 0; i < doc.markers.length; i++) {
-                    doc.markers[i].setVisible(true);
-                }
-            }
-            if (!!doc.ggroundoverlays) {
-                for (i = 0; i < doc.ggroundoverlays.length; i++) {
-                    doc.ggroundoverlays[i].setOpacity(doc.ggroundoverlays[i].percentOpacity_);
-                }
-            }
-            if (!!doc.gpolylines) {
-                for (i = 0; i < doc.gpolylines.length; i++) {
-                    doc.gpolylines[i].setMap(parserOptions.map);
-                }
-            }
-            if (!!doc.gpolygons) {
-                for (i = 0; i < doc.gpolygons.length; i++) {
-                    doc.gpolygons[i].setMap(parserOptions.map);
-                }
-            }
-        }
-    };
-
-    function processStyle(thisNode, styles, styleID) {
-        var nodeValue = geoXML3.nodeValue;
-        styles[styleID] = styles[styleID] || clone(defaultStyle);
-        var styleNodes = thisNode.getElementsByTagName('IconStyle');
-        if (!!styleNodes && !!styleNodes.length && (styleNodes.length > 0)) {
-            styles[styleID].scale = parseFloat(nodeValue(styleNodes[0].getElementsByTagName('scale')[0]));
-        }
-        if (isNaN(styles[styleID].scale)) styles[styleID].scale = 1.0;
-        styleNodes = thisNode.getElementsByTagName('Icon');
-        if (!!styleNodes && !!styleNodes.length && (styleNodes.length > 0)) {
-            styles[styleID].href = nodeValue(styleNodes[0].getElementsByTagName('href')[0]);
-        }
-        styleNodes = thisNode.getElementsByTagName('LineStyle');
-        if (!!styleNodes && !!styleNodes.length && (styleNodes.length > 0)) {
-            styles[styleID].color = nodeValue(styleNodes[0].getElementsByTagName('color')[0], defaultStyle.color);
-            styles[styleID].colorMode = nodeValue(styleNodes[0].getElementsByTagName('colorMode')[0], defaultStyle.colorMode);
-            styles[styleID].width = nodeValue(styleNodes[0].getElementsByTagName('width')[0], defaultStyle.width);
-        }
-        styleNodes = thisNode.getElementsByTagName('PolyStyle');
-        if (!!styleNodes && !!styleNodes.length && (styleNodes.length > 0)) {
-            styles[styleID].outline = getBooleanValue(styleNodes[0].getElementsByTagName('outline')[0], defaultStyle.outline);
-            styles[styleID].fill = getBooleanValue(styleNodes[0].getElementsByTagName('fill')[0], defaultStyle.fill);
-            styles[styleID].colorMode = nodeValue(styleNodes[0].getElementsByTagName('colorMode')[0], defaultStyle.colorMode);
-            styles[styleID].fillcolor = nodeValue(styleNodes[0].getElementsByTagName('color')[0], defaultStyle.fillcolor);
-        }
-        return styles[styleID];
-    }
-
-    // from http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
-    // http://keithdevens.com/weblog/archive/2007/Jun/07/javascript.clone
-    function clone(obj) {
-        if (obj == null || typeof (obj) != 'object') return obj;
-        var temp = new obj.constructor();
-        for (var key in obj) temp[key] = clone(obj[key]);
-        return temp;
-    }
-
-    function processStyleMap(thisNode, styles, styleID) {
-        var nodeValue = geoXML3.nodeValue;
-        var pairs = thisNode.getElementsByTagName('Pair');
-        var map = new Object();
-        // add each key to the map
-        for (var pr = 0; pr < pairs.length; pr++) {
-            var pairkey = nodeValue(pairs[pr].getElementsByTagName('key')[0]);
-            var pairstyle = nodeValue(pairs[pr].getElementsByTagName('Style')[0]);
-            var pairstyleurl = nodeValue(pairs[pr].getElementsByTagName('styleUrl')[0]);
-            if (!!pairstyle) {
-                processStyle(pairstyle, map[pairkey], styleID);
-            } else if (!!pairstyleurl && !!styles[pairstyleurl]) {
-                map[pairkey] = clone(styles[pairstyleurl]);
-            }
-        }
-        if (!!map["normal"]) {
-            styles[styleID] = clone(map["normal"]);
-        } else {
-            styles[styleID] = clone(defaultStyle);
-        }
-        if (!!map["highlight"] && !!parserOptions.processStyles) {
-            processStyleID(map["highlight"]);
-        }
-        styles[styleID].map = clone(map);
-    }
-
-    function getBooleanValue(node) {
-        var nodeContents = geoXML3.nodeValue(node);
-        if (!nodeContents) return true;
-        if (nodeContents) nodeContents = parseInt(nodeContents);
-        if (isNaN(nodeContents)) return true;
-        if (nodeContents == 0) return false;
-        else return true;
-    }
-
-    function processPlacemarkCoords(node, tag) {
-        var parent = node.getElementsByTagName(tag);
-        var coordListA = [];
-        for (var i = 0; i < parent.length; i++) {
-            var coordNodes = parent[i].getElementsByTagName('coordinates')
-            if (!coordNodes) {
-                if (coordListA.length > 0) {
-                    break;
-                } else {
-                    return [{ coordinates: [] }];
-                }
-            }
-
-            for (var j = 0; j < coordNodes.length; j++) {
-                var coords = geoXML3.nodeValue(coordNodes[j]).trim();
-                coords = coords.replace(/,\s+/g, ',');
-                var path = coords.split(/\s+/g);
-                var pathLength = path.length;
-                var coordList = [];
-                for (var k = 0; k < pathLength; k++) {
-                    coords = path[k].split(',');
-                    if (!isNaN(coords[0]) && !isNaN(coords[1])) {
-                        coordList.push({
-                            lat: parseFloat(coords[1]),
-                            lng: parseFloat(coords[0]),
-                            alt: parseFloat(coords[2])
-                        });
-                    }
-                }
-                coordListA.push({ coordinates: coordList });
-            }
-        }
-        return coordListA;
-    }
-
+    // 3. Proceso el fichero importado y lo muestro en el mapa
     var render = function (responseXML, doc) {
-        // Callback for retrieving a KML document: parse the KML and display it on the map
+    // Callback for retrieving a KML document: parse the KML and display it on the map
         if (!responseXML || responseXML == "failed parse") {
             // Error retrieving the data
             geoXML3.log('Unable to retrieve ' + doc.url);
@@ -338,6 +226,9 @@ geoXML3.parser = function (options) {
         } else if (!doc) {
             throw 'geoXML3 internal error: render called with null document';
         } else { //no errors
+          // Importado fichero KML sin errores  
+            
+            //Variables locales
             var i;
             var styles = {};
             doc.placemarks = [];
@@ -351,43 +242,51 @@ geoXML3.parser = function (options) {
             // Declare some helper functions in local scope for better performance
             var nodeValue = geoXML3.nodeValue;
 
-            // Parse styles
-            var styleID, styleNodes;
+            // 1. Parse styles: almaceno en styles[] los distintos styles del KML con un id que empieza por #
+            var styleID;
+            //var styleNodes;
             nodes = responseXML.getElementsByTagName('Style');
-            nodeCount = nodes.length;
-            for (i = 0; i < nodeCount; i++) {
+            for (i = 0; i < nodes.length; i++) {
                 thisNode = nodes[i];
                 var thisNodeId = thisNode.getAttribute('id');
                 if (!!thisNodeId) {
                     styleID = '#' + thisNodeId;
-                    processStyle(thisNode, styles, styleID);
+                    processStyle(thisNode, styles, styleID);        //Recupera los atributos y los mete en styles[]
                 }
             }
-            // rudamentary support for StyleMap
-            // use "normal" mapping only
+
+            // 2. Parse styleMap: almaceno tambien en styles[] los distintos styleMap del KML con un id que empieza por #
+            // 
             nodes = responseXML.getElementsByTagName('StyleMap');
             for (i = 0; i < nodes.length; i++) {
                 thisNode = nodes[i];
                 var thisNodeId = thisNode.getAttribute('id');
                 if (!!thisNodeId) {
                     styleID = '#' + thisNodeId;
-                    processStyleMap(thisNode, styles, styleID);
+                    processStyleMap(thisNode, styles, styleID);     //Recupera los atributos y los mete en styles[]
                 }
             }
+
+            // 3. Almaceno todos los estilos en el doc, dentro de styles
             doc.styles = styles;
+            //Procesa los estlos para depurar cosas de los marcadores. Es inutil
+            //toDo: eliminar la llamada a processStyles(doc) y eliminar esa funcion y la processStyleID()
             if (!!parserOptions.processStyles || !parserOptions.createMarker) {
                 // Convert parsed styles into GMaps equivalents
                 processStyles(doc);
             }
 
-            // Parse placemarks
+            // 4. Parseo los placemarks (marcadores, polilineas, poligonos, ...)
             if (!!doc.reload && !!doc.markers) {
                 for (i = 0; i < doc.markers.length; i++) {
                     doc.markers[i].active = false;
                 }
             }
-            var placemark, node, coords, path, marker, poly;
-            var placemark, coords, path, pathLength, marker, polygonNodes, coordList;
+
+            var placemark, node, marker, poly, polygonNodes ;
+            //var coords, path, coords, path, pathLength,  coordList;
+
+            // 5. Recorro cada placemark
             var placemarkNodes = responseXML.getElementsByTagName('Placemark');
             for (pm = 0; pm < placemarkNodes.length; pm++) {
                 // Init the placemark object
@@ -398,6 +297,10 @@ geoXML3.parser = function (options) {
                     styleUrl: geoXML3.nodeValue(node.getElementsByTagName('styleUrl')[0]),
                     id: node.getAttribute('id')
                 };
+
+                // Estos estilos quedan sin efecto porque asigno defaultOptions
+                //------------------------------------------------------------------------------------//
+                //Recupero el style del array de styles a partir del styleUrl
                 placemark.style = doc.styles[placemark.styleUrl] || clone(defaultStyle);
                 // inline style overrides shared style
                 var inlineStyles = node.getElementsByTagName('Style');
@@ -406,10 +309,14 @@ geoXML3.parser = function (options) {
                     processStyleID(style);
                     if (style) placemark.style = style;
                 }
+                //------------------------------------------------------------------------------------//
+
                 if (/^https?:\/\//.test(placemark.description)) {
                     placemark.description = ['<a href="', placemark.description, '">', placemark.description, '</a>'].join('');
                 }
 
+                // Esto de la multiGEometry no aplica en el Catastro 
+                //------------------------------------------------------------------------------------//
                 // process MultiGeometry
                 var GeometryNodes = node.getElementsByTagName('coordinates');
                 var Geometry = null;
@@ -462,11 +369,20 @@ geoXML3.parser = function (options) {
                         } // parentNode.nodeName exists
                     } // GeometryNodes loop
                 } // if GeometryNodes 
+                //------------------------------------------------------------------------------------//
+
                 // call the custom placemark parse function if it is defined
                 if (!!parserOptions.pmParseFn) parserOptions.pmParseFn(node, placemark);
+                
+                // Almaceno los placemarks en el doc
                 doc.placemarks.push(placemark);
                 if (!!window.google && !!google.maps) {
+
+                    //Para los markers (Punto central de la parcela)
+                    //-------------------------------------------//
                     if (placemark.Point) {
+
+                        //ACtualizo los bounds incluyendo el nuevo bound ahora con todos los placemarks
                         if (!!window.google && !!google.maps) {
                             doc.bounds = doc.bounds || new google.maps.LatLngBounds();
                             doc.bounds.extend(placemark.latlng);
@@ -503,7 +419,10 @@ geoXML3.parser = function (options) {
                             }
                         }
                     }
-                    if (placemark.Polygon) { // poly test 2
+
+                    //  Para los poligonos
+                    //---------------------//
+                    if (placemark.Polygon) {
                         if (!!doc) {
                             doc.gpolygons = doc.gpolygons || [];
                         }
@@ -521,6 +440,9 @@ geoXML3.parser = function (options) {
                             doc.bounds.union(poly.bounds);
                         }
                     }
+
+                    //  Para las polilineas
+                    //---------------------//
                     if (placemark.LineString) { // polyline
                         if (!!doc) {
                             doc.gpolylines = doc.gpolylines || [];
@@ -553,7 +475,10 @@ geoXML3.parser = function (options) {
                 }
             }
 
+            // Esta parte del codigo sobra porque no tenemos groundoverlays en el catastro
+            //------------------------------------------------------------------------------//            
             // Parse ground overlays
+            //Desactivo los groundoverlays si es un reload
             if (!!doc.reload && !!doc.groundoverlays) {
                 for (i = 0; i < doc.groundoverlays.length; i++) {
                     doc.groundoverlays[i].active = false;
@@ -563,8 +488,7 @@ geoXML3.parser = function (options) {
             if (!!doc) {
                 doc.groundoverlays = doc.groundoverlays || [];
             }
-            // doc.groundoverlays =[];
-            var groundOverlay, color, transparency, overlay;
+            var groundOverlay, overlay;
             var groundNodes = responseXML.getElementsByTagName('GroundOverlay');
             for (i = 0; i < groundNodes.length; i++) {
                 node = groundNodes[i];
@@ -640,6 +564,11 @@ geoXML3.parser = function (options) {
                     }
                 }
             }
+            //------------------------------------------------------------------------------//
+
+            
+            // Esta parte del codigo sobre porque no tenemos networklinks en el catastro
+            //------------------------------------------------------------------------------//               
             // Parse network links
             var networkLink;
             var docPath = document.location.pathname.split('/');
@@ -701,8 +630,10 @@ geoXML3.parser = function (options) {
                     }
                 }
             }
+            //------------------------------------------------------------------------------//
         }
-
+             
+        //Actualizo los bounds
         if (!!doc.bounds && !!window.google && !!google.maps) {
             doc.internals.bounds = doc.internals.bounds || new google.maps.LatLngBounds();
             doc.internals.bounds.union(doc.bounds);
@@ -712,26 +643,163 @@ geoXML3.parser = function (options) {
         }
 
         doc.internals.remaining -= 1;
+
         if (doc.internals.remaining === 0) {
             // We're done processing this set of KML documents
             // Options that get invoked after parsing completes
+
+            //Hago zoom en la capa cargada
             if (parserOptions.zoom && !!doc.internals.bounds &&
                 !doc.internals.bounds.isEmpty() && !!parserOptions.map) {
                 parserOptions.map.fitBounds(doc.internals.bounds);
             }
+            
+            //Llamo a la funcion callback definida por afterParse
             if (parserOptions.afterParse) {
                 parserOptions.afterParse(doc.internals.docSet);
             }
 
+            //Almaceno el resultado en doc
             if (!doc.internals.parseOnly) {
                 // geoXML3 is not being used only as a real-time parser, so keep the processed documents around
                 for (var i = 0; i < doc.internals.docSet.length; i++) {
                     docs.push(doc.internals.docSet[i]);
                 }
             }
+
+            //No tengo claro lo que hace exactamente
             google.maps.event.trigger(doc.internals.parser, 'parsed');
         }
     };
+
+    //Recupera del nodo de stilo (thisNode) los parametros del estilo en custion (styleID)
+    //Devuelve Los parametros del estilo se guardan en styles[styleID] como atributos segun el tipo de style que sea
+    //Icono: scale, href
+    //Polyline: color, colorMode, width
+    //Polygon: outline, fill, fillColor, colorMode
+    function processStyle(thisNode, styles, styleID) {
+        //elimina caracteres en blanco y ociosos del fichero KML
+        var nodeValue = geoXML3.nodeValue;      
+        styles[styleID] = styles[styleID] || clone(defaultStyle);
+        
+        // Iconos//
+        //Scale del icono
+        var styleNodes = thisNode.getElementsByTagName('IconStyle');
+        if (!!styleNodes && !!styleNodes.length && (styleNodes.length > 0)) {
+            styles[styleID].scale = parseFloat(nodeValue(styleNodes[0].getElementsByTagName('scale')[0]));
+        }
+        if (isNaN(styles[styleID].scale)) styles[styleID].scale = 1.0;
+
+        //href del icono a visualizar. 
+        //NodeValue elimina caracteres vacios y asigna por defecto si KML esta vacio
+        styleNodes = thisNode.getElementsByTagName('Icon');
+        if (!!styleNodes && !!styleNodes.length && (styleNodes.length > 0)) {
+            styles[styleID].href = nodeValue(styleNodes[0].getElementsByTagName('href')[0]);
+        }
+        
+        // Polilineas
+        styleNodes = thisNode.getElementsByTagName('LineStyle');
+        if (!!styleNodes && !!styleNodes.length && (styleNodes.length > 0)) {
+            styles[styleID].color = nodeValue(styleNodes[0].getElementsByTagName('color')[0], defaultStyle.color);
+            styles[styleID].colorMode = nodeValue(styleNodes[0].getElementsByTagName('colorMode')[0], defaultStyle.colorMode);
+            styles[styleID].width = nodeValue(styleNodes[0].getElementsByTagName('width')[0], defaultStyle.width);
+        }
+
+        //Polygons
+        styleNodes = thisNode.getElementsByTagName('PolyStyle');
+        if (!!styleNodes && !!styleNodes.length && (styleNodes.length > 0)) {
+            styles[styleID].outline = getBooleanValue(styleNodes[0].getElementsByTagName('outline')[0], defaultStyle.outline);
+            styles[styleID].fill = getBooleanValue(styleNodes[0].getElementsByTagName('fill')[0], defaultStyle.fill);
+            styles[styleID].colorMode = nodeValue(styleNodes[0].getElementsByTagName('colorMode')[0], defaultStyle.colorMode);
+            styles[styleID].fillcolor = nodeValue(styleNodes[0].getElementsByTagName('color')[0], defaultStyle.fillcolor);
+        }
+        return styles[styleID];
+    }
+
+    //Como la anterior pero para StyleMap solo
+    //map.normal: key, style, styleurl 
+    function processStyleMap(thisNode, styles, styleID) {
+        var nodeValue = geoXML3.nodeValue;
+        var pairs = thisNode.getElementsByTagName('Pair');
+        var map = new Object();
+        // add each key to the map
+        for (var pr = 0; pr < pairs.length; pr++) {
+            var pairkey = nodeValue(pairs[pr].getElementsByTagName('key')[0]);
+            var pairstyle = nodeValue(pairs[pr].getElementsByTagName('Style')[0]);
+            var pairstyleurl = nodeValue(pairs[pr].getElementsByTagName('styleUrl')[0]);
+            if (!!pairstyle) {
+                processStyle(pairstyle, map[pairkey], styleID);
+            } else if (!!pairstyleurl && !!styles[pairstyleurl]) {
+                map[pairkey] = clone(styles[pairstyleurl]);
+            }
+        }
+        if (!!map["normal"]) {
+            styles[styleID] = clone(map["normal"]);
+        } else {
+            styles[styleID] = clone(defaultStyle);
+        }
+        if (!!map["highlight"] && !!parserOptions.processStyles) {
+            processStyleID(map["highlight"]);
+        }
+        styles[styleID].map = clone(map);
+    }
+
+    //-----------------------------------------------//
+    // Funciones internas para agilizar el procesado //
+    //-----------------------------------------------//
+
+    function clone(obj) {
+    // from http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+    // http://keithdevens.com/weblog/archive/2007/Jun/07/javascript.clone
+        if (obj == null || typeof (obj) != 'object') return obj;
+        var temp = new obj.constructor();
+        for (var key in obj) temp[key] = clone(obj[key]);
+        return temp;
+    }
+
+    function getBooleanValue(node) {
+        var nodeContents = geoXML3.nodeValue(node);
+        if (!nodeContents) return true;
+        if (nodeContents) nodeContents = parseInt(nodeContents);
+        if (isNaN(nodeContents)) return true;
+        if (nodeContents == 0) return false;
+        else return true;
+    }
+
+    function processPlacemarkCoords(node, tag) {
+        var parent = node.getElementsByTagName(tag);
+        var coordListA = [];
+        for (var i = 0; i < parent.length; i++) {
+            var coordNodes = parent[i].getElementsByTagName('coordinates')
+            if (!coordNodes) {
+                if (coordListA.length > 0) {
+                    break;
+                } else {
+                    return [{ coordinates: [] }];
+                }
+            }
+
+            for (var j = 0; j < coordNodes.length; j++) {
+                var coords = geoXML3.nodeValue(coordNodes[j]).trim();
+                coords = coords.replace(/,\s+/g, ',');
+                var path = coords.split(/\s+/g);
+                var pathLength = path.length;
+                var coordList = [];
+                for (var k = 0; k < pathLength; k++) {
+                    coords = path[k].split(',');
+                    if (!isNaN(coords[0]) && !isNaN(coords[1])) {
+                        coordList.push({
+                            lat: parseFloat(coords[1]),
+                            lng: parseFloat(coords[0]),
+                            alt: parseFloat(coords[2])
+                        });
+                    }
+                }
+                coordListA.push({ coordinates: coordList });
+            }
+        }
+        return coordListA;
+    }
 
     var kmlColor = function (kmlIn, colorMode) {
         var kmlColor = {};
@@ -747,7 +815,6 @@ geoXML3.parser = function (options) {
         return kmlColor;
     };
 
-    // Implemented per KML 2.2 <ColorStyle> specs
     var randomColor = function (rr, gg, bb) {
         var col = { rr: rr, gg: gg, bb: bb };
         for (var k in col) {
@@ -763,68 +830,77 @@ geoXML3.parser = function (options) {
         return '#' + col.rr + col.gg + col.bb;
     };
 
-    var processStyleID = function (style) {
+    //-----------------------------------------------//
+    // Metodos de geoXML3 para manejar el conjunto   //
+    //-----------------------------------------------//     
+
+    //Oculta del mapa todos los elementos de un doc concreto, si no se pasa coge el docs[0]
+    var hideDocument = function (doc) {
+        if (!doc) doc = docs[0];
+        // Hide the map objects associated with a document 
+        var i;
         if (!!window.google && !!google.maps) {
-            var zeroPoint = new google.maps.Point(0, 0);
-            if (!!style.href) {
-                var markerRegEx = /\/(red|blue|green|yellow|lightblue|purple|pink|orange|pause|go|stop)(-dot)?\.png/;
-                if (markerRegEx.test(style.href)) {
-                    //bottom middle
-                    var anchorPoint = new google.maps.Point(16 * style.scale, 32 * style.scale);
-                } else {
-                    var anchorPoint = new google.maps.Point(16 * style.scale, 16 * style.scale);
+            if (!!doc.markers) {
+                for (i = 0; i < doc.markers.length; i++) {
+                    if (!!doc.markers[i].infoWindow) doc.markers[i].infoWindow.close();
+                    doc.markers[i].setVisible(false);
                 }
-                // Init the style object with a standard KML icon
-                style.icon = {
-                    url: style.href,
-                    size: new google.maps.Size(32 * style.scale, 32 * style.scale),
-                    origin: zeroPoint,
-                    // bottom middle 
-                    anchor: anchorPoint,
-                    scaledSize: new google.maps.Size(32 * style.scale, 32 * style.scale)
-                };
-                // Look for a predictable shadow
-                var stdRegEx = /\/(red|blue|green|yellow|lightblue|purple|pink|orange)(-dot)?\.png/;
-                var shadowSize = new google.maps.Size(59, 32);
-                var shadowPoint = new google.maps.Point(16, 32);
-                if (stdRegEx.test(style.href)) {
-                    // A standard GMap-style marker icon
-                    style.shadow = {
-                        url: 'http://maps.google.com/mapfiles/ms/micons/msmarker.shadow.png',
-                        size: shadowSize,
-                        origin: zeroPoint,
-                        anchor: shadowPoint,
-                        scaledSize: shadowSize
-                    };
-                } else if (style.href.indexOf('-pushpin.png') > -1) {
-                    // Pushpin marker icon
-                    style.shadow = {
-                        url: 'http://maps.google.com/mapfiles/ms/micons/pushpin_shadow.png',
-                        size: shadowSize,
-                        origin: zeroPoint,
-                        anchor: shadowPoint,
-                        scaledSize: shadowSize
-                    };
-                } else {
-                    // Other MyMaps KML standard icon
-                    style.shadow = {
-                        url: style.href.replace('.png', '.shadow.png'),
-                        size: shadowSize,
-                        origin: zeroPoint,
-                        anchor: shadowPoint,
-                        scaledSize: shadowSize
-                    };
+            }
+            if (!!doc.ggroundoverlays) {
+                for (i = 0; i < doc.ggroundoverlays.length; i++) {
+                    doc.ggroundoverlays[i].setOpacity(0);
+                }
+            }
+            if (!!doc.gpolylines) {
+                for (i = 0; i < doc.gpolylines.length; i++) {
+                    if (!!doc.gpolylines[i].infoWindow) doc.gpolylines[i].infoWindow.close();
+                    doc.gpolylines[i].setMap(null);
+                }
+            }
+            if (!!doc.gpolygons) {
+                for (i = 0; i < doc.gpolygons.length; i++) {
+                    if (!!doc.gpolygons[i].infoWindow) doc.gpolygons[i].infoWindow.close();
+                    doc.gpolygons[i].setMap(null);
                 }
             }
         }
-    }
-
-    var processStyles = function (doc) {
-        for (var styleID in doc.styles) {
-            processStyleID(doc.styles[styleID]);
+    };
+    //Muestra toda la capa docs[i] indicada o toma el docs[0] en su defecto
+    var showDocument = function (doc) {
+        if (!doc) doc = docs[0];
+        // Show the map objects associated with a document 
+        var i;
+        if (!!window.google && !!google.maps) {
+            if (!!doc.markers) {
+                for (i = 0; i < doc.markers.length; i++) {
+                    doc.markers[i].setVisible(true);
+                }
+            }
+            if (!!doc.ggroundoverlays) {
+                for (i = 0; i < doc.ggroundoverlays.length; i++) {
+                    doc.ggroundoverlays[i].setOpacity(doc.ggroundoverlays[i].percentOpacity_);
+                }
+            }
+            if (!!doc.gpolylines) {
+                for (i = 0; i < doc.gpolylines.length; i++) {
+                    doc.gpolylines[i].setMap(parserOptions.map);
+                }
+            }
+            if (!!doc.gpolygons) {
+                for (i = 0; i < doc.gpolygons.length; i++) {
+                    doc.gpolygons[i].setMap(parserOptions.map);
+                }
+            }
         }
     };
 
+
+    //-----------------------------------------------//
+    // Funciones internas para crear los placemarks  //
+    //-----------------------------------------------//    
+
+    //CRea el marker en el mapa, con las opciones por defecto
+    //CRea un listener on click que muestra la infoWindow
     var createMarker = function (placemark, doc) {
         // create a Marker to the map from a placemark KML object
 
@@ -869,28 +945,6 @@ geoXML3.parser = function (options) {
         return marker;
     };
 
-    var createOverlay = function (groundOverlay, doc) {
-        // Add a ProjectedOverlay to the map from a groundOverlay KML object
-
-        if (!window.ProjectedOverlay) {
-            throw 'geoXML3 error: ProjectedOverlay not found while rendering GroundOverlay from KML';
-        }
-
-        var bounds = new google.maps.LatLngBounds(
-            new google.maps.LatLng(groundOverlay.latLonBox.south, groundOverlay.latLonBox.west),
-            new google.maps.LatLng(groundOverlay.latLonBox.north, groundOverlay.latLonBox.east)
-        );
-        var overlayOptions = geoXML3.combineOptions(parserOptions.overlayOptions, { percentOpacity: groundOverlay.opacity * 100 });
-        var overlay = new ProjectedOverlay(parserOptions.map, groundOverlay.icon.href, bounds, overlayOptions);
-
-        if (!!doc) {
-            doc.ggroundoverlays = doc.ggroundoverlays || [];
-            doc.ggroundoverlays.push(overlay);
-        }
-
-        return overlay;
-    };
-
     // Create Polyline
     var createPolyline = function (placemark, doc) {
         var paths = [];
@@ -908,6 +962,7 @@ geoXML3.parser = function (options) {
 
         // point to open the infowindow if triggered 
         var point = paths[0][Math.floor(path.length / 2)];
+
         // Load basic polyline properties
         var kmlStrokeColor = kmlColor(placemark.style.color, placemark.style.colorMode);
         var polyOptions = geoXML3.combineOptions(parserOptions.polylineOptions, {
@@ -925,6 +980,7 @@ geoXML3.parser = function (options) {
             var p = new google.maps.Polyline(polyOptions);
         }
         p.bounds = bounds;
+
         // setup and create the infoWindow if it is not suppressed
         if (!parserOptions.suppressInfoWindows) {
             var infoWindowOptions = geoXML3.combineOptions(parserOptions.infoWindowOptions, {
@@ -958,8 +1014,9 @@ geoXML3.parser = function (options) {
     // Create Polygon
     var createPolygon = function (placemark, doc) {
         var bounds = new google.maps.LatLngBounds();
-        var pathsLength = 0;
         var paths = [];
+        var pathsLength = 0;
+
         for (var polygonPart = 0; polygonPart < placemark.Polygon.length; polygonPart++) {
             for (var j = 0; j < placemark.Polygon[polygonPart].outerBoundaryIs.length; j++) {
                 var coords = placemark.Polygon[polygonPart].outerBoundaryIs[j].coordinates;
@@ -1035,6 +1092,108 @@ geoXML3.parser = function (options) {
         return p;
     }
 
+
+    //------------------------------------------//   
+    // funciones y codigo a eliminar o puntear  //
+    //------------------------------------------//
+    
+    //Ajusta el formato del icono que se haya pasado.
+    //complicado y no le veo la utilidad.
+    //ToDo: eliminar esta funcion y la processStyles() o bien configurar como processStyles=false
+    var processStyleID = function (style) {
+
+        if (!!window.google && !!google.maps) {
+            var zeroPoint = new google.maps.Point(0, 0);
+
+            if (!!style.href) {
+                var markerRegEx = /\/(red|blue|green|yellow|lightblue|purple|pink|orange|pause|go|stop)(-dot)?\.png/;
+                if (markerRegEx.test(style.href)) {
+                    //bottom middle
+                    var anchorPoint = new google.maps.Point(16 * style.scale, 32 * style.scale);
+                } else {
+                    var anchorPoint = new google.maps.Point(16 * style.scale, 16 * style.scale);
+                }
+                // Init the style object with a standard KML icon
+                style.icon = {
+                    url: style.href,
+                    size: new google.maps.Size(32 * style.scale, 32 * style.scale),
+                    origin: zeroPoint,
+                    // bottom middle 
+                    anchor: anchorPoint,
+                    scaledSize: new google.maps.Size(32 * style.scale, 32 * style.scale)
+                };
+                // Look for a predictable shadow
+                var stdRegEx = /\/(red|blue|green|yellow|lightblue|purple|pink|orange)(-dot)?\.png/;
+                var shadowSize = new google.maps.Size(59, 32);
+                var shadowPoint = new google.maps.Point(16, 32);
+                if (stdRegEx.test(style.href)) {
+                    // A standard GMap-style marker icon
+                    style.shadow = {
+                        url: 'http://maps.google.com/mapfiles/ms/micons/msmarker.shadow.png',
+                        size: shadowSize,
+                        origin: zeroPoint,
+                        anchor: shadowPoint,
+                        scaledSize: shadowSize
+                    };
+                } else if (style.href.indexOf('-pushpin.png') > -1) {
+                    // Pushpin marker icon
+                    style.shadow = {
+                        url: 'http://maps.google.com/mapfiles/ms/micons/pushpin_shadow.png',
+                        size: shadowSize,
+                        origin: zeroPoint,
+                        anchor: shadowPoint,
+                        scaledSize: shadowSize
+                    };
+                } else {
+                    // Other MyMaps KML standard icon
+                    style.shadow = {
+                        url: style.href.replace('.png', '.shadow.png'),
+                        size: shadowSize,
+                        origin: zeroPoint,
+                        anchor: shadowPoint,
+                        scaledSize: shadowSize
+                    };
+                }
+            }
+        }
+    }
+
+    //Llama a la funcion processStyleID, que no hace mucho, la verdad
+    //toDo: eliminar eta funcion y su llamada
+    var processStyles = function (doc) {
+        for (var styleID in doc.styles) {
+            processStyleID(doc.styles[styleID]);
+        }
+    };
+
+    //CRea el ground overlay pero no tenemos nosotros
+    //Eliminar
+    var createOverlay = function (groundOverlay, doc) {
+        // Add a ProjectedOverlay to the map from a groundOverlay KML object
+
+        if (!window.ProjectedOverlay) {
+            throw 'geoXML3 error: ProjectedOverlay not found while rendering GroundOverlay from KML';
+        }
+
+        var bounds = new google.maps.LatLngBounds(
+            new google.maps.LatLng(groundOverlay.latLonBox.south, groundOverlay.latLonBox.west),
+            new google.maps.LatLng(groundOverlay.latLonBox.north, groundOverlay.latLonBox.east)
+        );
+        var overlayOptions = geoXML3.combineOptions(parserOptions.overlayOptions, { percentOpacity: groundOverlay.opacity * 100 });
+        var overlay = new ProjectedOverlay(parserOptions.map, groundOverlay.icon.href, bounds, overlayOptions);
+
+        if (!!doc) {
+            doc.ggroundoverlays = doc.ggroundoverlays || [];
+            doc.ggroundoverlays.push(overlay);
+        }
+
+        return overlay;
+    };
+
+
+
+
+
     return {
         // Expose some properties and methods
 
@@ -1054,8 +1213,9 @@ geoXML3.parser = function (options) {
     };
 };
 // End of KML Parser
+//-----------------------
 
-// Helper objects and functions
+// Extraxct Opacity from color atributes in kML when it exits (1 if not)
 geoXML3.getOpacity = function (kmlColor) {
     // Extract opacity encoded in a KML color value. Returns a number between 0 and 1.
     if (!!kmlColor &&
