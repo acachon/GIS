@@ -4,7 +4,10 @@
  */
     console.log("Arranca el script importGeoxml3-V1");
 
-    //Variables globales
+    //----------------------//
+    //Variables globales    //
+    //----------------------//
+
     var geoXml = null;      //Objeto con toda la informaicon importada de las capas del catastro
 
     //Defino los colores de las subparcelas de manera estatica y me salto lo que viene definido en al capa KML
@@ -27,6 +30,10 @@
     
     const defaultColor    = "#FFFF00";
     const defaultOpacity  = 0.5;
+
+    //------------------------------------------//
+    //Funciones y metodos de este componente    //
+    //------------------------------------------//
 
     function initialize() {
         //Inicializo el objeto geoXml ligada al map y con un callback (useTheData)
@@ -66,9 +73,9 @@
  
             //Creo una nueva fila en el sidebar con la info de cada poligono: y le asigno una funcion de mouseover/out/etc...
             sidebarHtml += '<tr><td onmouseover="kmlHighlightPoly(' + i + ');" onmouseout="kmlUnHighlightPoly(' + i + ');"><a href="javascript:kmlClick(' + i + ');">' + doc[0].placemarks[i].name + '</a> - <a href="javascript:kmlShowPoly(' + i + ');">show</a></td></tr>';
- 
+            //Aplico el estilo normal por defecto y creo los listener de mouseover/out para realzar la subparacela
             geoXmlDoc.gpolygons[i].normalStyle = normalStyle;
-            highlightPoly(geoXmlDoc.gpolygons[i]);
+            highlightPolyListener(geoXmlDoc.gpolygons[i]);   //Creo los listener en esta subparcela
         }
 
         //Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
@@ -79,6 +86,26 @@
     //Funciones para visualizacion de la capa KML y sus subparcelas //
     //--------------------------------------------------------------// 
 
+    function highlightPolyListener(poly) {
+    //Declaro los listener para realzar la subparcela al pasar el raton
+        google.maps.event.addListener(poly, "mouseover", function () {
+            poly.setOptions(highlightOptions);
+        });
+        google.maps.event.addListener(poly, "mouseout", function () {
+            poly.setOptions(poly.normalStyle);
+        });
+    }
+
+    function kmlClick(pm) {
+    //Hace zoom y muestra la subparcela seleccionada como si la clickase
+        if (geoXml.docs[0].gpolygons[pm].getMap()) {
+            google.maps.event.trigger(geoXmlDoc.gpolygons[pm], "click");
+        } else { //Si la subparcela no estaba visible en el mapa la muestra y luego zoom
+            geoXmlDoc.gpolygons[pm].setMap(map);
+            google.maps.event.trigger(geoXmlDoc.gpolygons[pm], "click");
+        }
+    }
+
     function showAll() {
     //Muestra todas las subparcelas y ajusta el zoom para verse todas
         //Ajusto el zoom
@@ -86,16 +113,6 @@
         //Muestro todas las subparcelas
         for (var i = 0; i < geoXmlDoc.gpolygons.length; i++) {
             geoXmlDoc.gpolygons[i].setMap(map);
-        }
-    }
-
-    function kmlClick(pm) {
-    //Hace zoom y muestra la subparcela seleccionada
-        if (geoXml.docs[0].gpolygons[pm].getMap()) {
-            google.maps.event.trigger(geoXmlDoc.gpolygons[pm], "click");
-        } else { //Si la subparcela no estaba visible en el mapa la muestra y luego zoom
-            geoXmlDoc.gpolygons[pm].setMap(map);
-            google.maps.event.trigger(geoXmlDoc.gpolygons[pm], "click");
         }
     }
 
@@ -110,67 +127,47 @@
         map.fitBounds(geoXmlDoc.gpolygons[polyID].bounds);
     }
 
-    function kmlHighlightPoly(poly) {
+    function kmlHighlightPoly(polyID) {
+    //Resalto la subparcela polyID y dejo las demas en normal
         for (var i = 0; i < geoXmlDoc.gpolygons.length; i++) {
-            if (i == poly) {
-                geoXmlDoc.gpolygons[i].setOptions(highlightOptions);
-            } else {
-                geoXmlDoc.gpolygons[i].setOptions(geoXmlDoc.gpolygons[i].normalStyle);
-            }
+            geoXmlDoc.gpolygons[i].setOptions(geoXmlDoc.gpolygons[i].normalStyle);
         }
+        //Resalto la subparcela indicada por su indice polyID
+        geoXmlDoc.gpolygons[polyID].setOptions(highlightOptions);
     }
 
-    function kmlUnHighlightPoly(poly) {
-        for (var i = 0; i < geoXmlDoc.gpolygons.length; i++) {
-            if (i == poly) {
-                geoXmlDoc.gpolygons[i].setOptions(geoXmlDoc.gpolygons[i].normalStyle);
-            }
-        }
+    function kmlUnHighlightPoly(polyID) {
+    //Vuelvo al estilo normal a la subparcela polyID
+        geoXmlDoc.gpolygons[polyID].setOptions(geoXmlDoc.gpolygons[polyID].normalStyle);
     }
 
-    function highlightPoly(poly) {
-        google.maps.event.addListener(poly, "mouseover", function () {
-            poly.setOptions(highlightOptions);
-        });
-        google.maps.event.addListener(poly, "mouseout", function () {
-            poly.setOptions(poly.normalStyle);
-        });
-    }
-
-    function hide_markers_kml() {
-        for (var i = 0; i < geoXmlDoc.markers.length; i++) {
-            geoXmlDoc.markers[i].setVisible(false);
-        }
-    }
-    
-    function unhide_markers_kml() {
-        for (var i = 0; i < geoXmlDoc.markers.length; i++) {
-            geoXmlDoc.markers[i].setVisible(true);
-        }
-    }
-
-    function hide_polys_kml() {
-        for (var i = 0; i < geoXmlDoc.gpolylines.length; i++) {
-            geoXmlDoc.gpolylines[i].setMap(null);
-        }
-    }
-
-    function unhide_polys_kml() {
-        for (var i = 0; i < geoXmlDoc.gpolylines.length; i++) {
-            geoXmlDoc.gpolylines[i].setMap(map);
-        }
-    }
 
     //Funciones utiles para usar en su momento //
     //----------------------------------------//
-    function hide_kml() {
-    //Oculta toda la capa, todas las parcelas, subparcelas, etc..
-        geoXml.hideDocument();
+
+    function kmlShowMarkers(flag) {
+    //Muestra o no los marcadores KML segun indique el flag (true or false)
+        for (var i = 0; i < geoXmlDoc.markers.length; i++) {
+            geoXmlDoc.markers[i].setVisible(flag);
+        }
+    }
+
+    function kmlShowPolyLines(flag) {
+    //Muestro o no en el mapa las polilineas del KML segun sea el flag (true or false)
+        flag ? canvas=map : canvas=null;
+        for (var i = 0; i < geoXmlDoc.gpolylines.length; i++) {
+            geoXmlDoc.gpolylines[i].setMap(canvas);
+        }
     }
     
-    function unhide_kml() {
-    //Muestra toda la capa, todas las parcelas, subparcelas, etc..
-        geoXml.showDocument();
+    function kmlShow(flag) {
+    //Muestra toda la capa KML o no segun el flag (true or false)
+        if (flag){ 
+            geoXml.showDocument();
+        }
+        else {      
+            geoXml.hideDocument();
+        }
     }
 
     function reload_kml() {
