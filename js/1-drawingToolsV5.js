@@ -42,14 +42,14 @@ var layersControl = [
         layerID:        0,
         layerName:      "Mapas",
         flagViewable:   true,
-        flagClickable:   false,
+        flagClickable:  false,
         flagEditable:   false,
     },
     {
         layerID:        1,
         layerName:      "Catastro",
         flagViewable:   true,
-        flagClickable:   true,
+        flagClickable:  true,
         flagEditable:   false,
     },
 ]
@@ -520,7 +520,6 @@ function copiarOverlays(){
 
 }
 
-
 function mostrarRC(miLatLng){
 //TODO: ejecuta una accion con las coordenadas pasadas: pintar en ventana resultados y la RefCatastral *consulta catastro) en el visor
     //1. Muestra las coordenadas en la ventana lateral
@@ -532,12 +531,44 @@ function mostrarRC(miLatLng){
         document.getElementById("info-box").innerText=respuesta;
         
         //3. Muestro la capa KML en el mapa
+        /*
         geoXmlNew = new geoXML3.parser({
             map: map,
             singleInfoWindow: true,
             afterParse: useTheData
         });
         geoXmlNew.parse("https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="+ respuesta +"&del=23&mun=900&tipo=3d");
+        */
+
+        //3. Incluyo la nueva RC para hacer un nuevo import de capas XML al catastro y gestionarlo desde geoXML
+        if (!geoXml){                           //Si no existe ya alguna capa XML importada del catastro
+            geoXml = new geoXML3.parser({
+                map: map,
+                singleInfoWindow: true,
+                afterParse: useTheData
+            });
+            //Importo la capa del catastro, la formateo y la muestor en el mapa
+            geoXml.parse(
+                "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
+                + respuesta 
+                +"&del=23&mun=900&tipo=3d"
+            );
+
+        } else {                                //Si ya existe un objeto geoXML con capas del catastro
+            var urls=[];
+            //Almaceno las parcelas (sus urls) ya cargadas y las guardo en un #unico array 
+            geoXml.docs.forEach(element => {
+                urls.push(element.url);
+            });
+            //Añado al nueva url
+            urls.push(
+                "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
+                + respuesta 
+                +"&del=23&mun=900&tipo=3d"
+            );
+            //Vuelvo a importar del catastro ahora con la nueva url incluida
+            geoXml.parse(urls);
+        }
 
     });
 }
@@ -668,7 +699,7 @@ function toogleClickable (layerID){
     console.log("Cambia Clickable del LayerID: " + layerID + " (" + !layersControl[layerID].flagClickable + ")");
     
     //Cambia la propiedad "active" de todos los placemarks para des/habilitar los listeners
-    switchListeners(!layersControl[layerID].flagClickable);
+    geoXml.activatePlacemarks(!layersControl[layerID].flagClickable);
 
     layersControl[layerID].flagClickable = !layersControl[layerID].flagClickable;             //toggle status flag
 }

@@ -139,27 +139,6 @@
         }   
     }
 
-    function switchListeners (flag){
-    //Cambio la propiedad active de todos los placemarkers
-    //Todos los listerners los he hecho que verifiquen esta propiedad para desactivarse o activarse
-        for (var n=0; n<geoXml.docs.length; n++){
-            //Polygons
-            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
-                geoXml.docs[n].gpolygons[i].active=flag;
-            }
-            
-            //Markers
-            for (var i = 0; i < geoXml.docs[n].markers.length; i++) {
-                geoXml.docs[n].markers[i].active=flag;
-            }
-
-            //Polylines
-            for (var i = 0; i < geoXml.docs[n].gpolylines.length; i++) {
-                geoXml.docs[n].gpolylines[i].active=flag;
-            }
-        }  
-    }
-
     function kmlClick(docID, polyID) {
     //Hace zoom y muestra la subparcela seleccionada como si la clickase
         if (geoXml.docs[docID].gpolygons[polyID].getMap()) {
@@ -184,6 +163,7 @@
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
+        //geoXml.activatePlacemarks(false);
 
 //--------------------------------------------------------------------------
     }
@@ -274,5 +254,26 @@
             kmlColor.opacity = defaultOpacity;
         }
         return kmlColor;
+    }
+    
+    function switchListeners (flag){
+    //Cambio la propiedad active de todos los placemarkers
+    //Todos los listerners los he hecho que verifiquen esta propiedad para desactivarse o activarse
+        for (var n=0; n<geoXml.docs.length; n++){
+            //Polygons
+            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
+                geoXml.docs[n].gpolygons[i].active=flag;
+            }
+            
+            //Markers
+            for (var i = 0; i < geoXml.docs[n].markers.length; i++) {
+                geoXml.docs[n].markers[i].active=flag;
+            }
+
+            //Polylines
+            for (var i = 0; i < geoXml.docs[n].gpolylines.length; i++) {
+                geoXml.docs[n].gpolylines[i].active=flag;
+            }
+        }  
     }
     */

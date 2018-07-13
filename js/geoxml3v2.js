@@ -911,6 +911,31 @@ geoXML3.parser = function (options) {
         return bounds;
     }
 
+    //Activa el atributo "active" de todos los placemarks
+    //Lo hace para una parcela, un doc que se le pase como document (o de todos los docs por defecto)
+    //Este atributo hace que los listener se des/activen como se requiere al definir la capa como seleccionable o no
+    var activatePlacemarks = function (flag, document){
+        for (var n=0; n<docs.length; n++){
+            //Si se indica una capa RC concreta salto a ella, si no recorro todas
+            !!document? doc=document : doc = docs[n];
+            
+            //Activo los markers como indica el flag
+            doc.markers.forEach(element => {
+                element.active = flag;
+            });
+            //Activo los polygons como indica el flag
+            doc.gpolygons.forEach(element => {
+                element.active = flag;
+            });
+            //Activo los polylines como indica el flag
+            doc.gpolylines.forEach(element => {
+                element.active = flag;
+            });
+
+            if (document) break;    //Si se solicito para un solo doc en concreto (document) salgo del bucle de docs[]
+        }
+    }
+
     //-----------------------------------------------//
     // Funciones internas para crear los placemarks  //
     //-----------------------------------------------//    
@@ -1234,6 +1259,8 @@ geoXML3.parser = function (options) {
         hideDocument: hideDocument,
         showDocument: showDocument,
         parse: parse,
+        activatePlacemarks: activatePlacemarks,
+
         //render: render,
         //parseKmlString: parseKmlString,
         //processStyles: processStyles,
