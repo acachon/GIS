@@ -82,16 +82,16 @@
         //Construyo el codigo html de la ventana lateral con la info de la parcela
         var sidebarHtml = '<table><tr><td><a href="javascript:showAllPoly();">Show All</a></td></tr>';
 
-        //REcorro todas los docs que hubiera
+        //Crear el sidebar con la info de todos los poligonos y parcelas
+        //CReo un listenr en cada pol'igono para resaltarlo con mouseover
         for (var n=0; n<doc.length; n++){
             //Recorro todas las poligonales de la n-capa KML (subparcelas) para ponerlas en el sidebar y darles formato   
-            geoXmlDoc = doc[n];
-            for (var i = 0; i < geoXmlDoc.gpolygons.length; i++) {
+            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
                 //Creo una nueva fila en el sidebar con la info de cada poligono: y le asigno una funcion de mouseover/out/etc...
                 sidebarHtml += '<tr><td onmouseover="kmlHighlightPoly(' + n + "," + i + ');" onmouseout="kmlUnHighlightPoly(' + n + "," + i + ');"><a href="javascript:kmlClick(' + n + "," + i + ');">' + doc[0].placemarks[i].name + '</a> - <a href="javascript:kmlShowPoly(' + n + "," + i + ');">show</a></td></tr>';
                 //Aplico el estilo normal por defecto y creo los listener de mouseover/out para realzar la subparacela
-                geoXmlDoc.gpolygons[i].normalStyle = normalStyle;
-                highlightPolyListener(geoXmlDoc.gpolygons[i]);   //Creo los listener en esta subparcela
+                geoXml.docs[n].gpolygons[i].normalStyle = normalStyle;
+                highlightPolyListener(geoXml.docs[n].gpolygons[i]);   //Creo los listener en esta subparcela
             }
         }
 
@@ -106,12 +106,58 @@
 
     function highlightPolyListener(poly) {
     //Declaro los listener para realzar la subparcela al pasar el raton
-        google.maps.event.addListener(poly, "mouseover", function () {
+    //toDo: hacer los listener con un array de handlers
+        
+        var listeners = []; //Array donde guardo los listener handlers
+        listener = google.maps.event.addListener(poly, "mouseover", function () {
+            if (!poly.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa
             poly.setOptions(highlightOptions);
         });
-        google.maps.event.addListener(poly, "mouseout", function () {
+        listeners.push(listener);
+
+        listener = google.maps.event.addListener(poly, "mouseout", function () {
+            if (!poly.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa            
             poly.setOptions(poly.normalStyle);
         });
+        listeners.push(listener);
+
+        if (!poly.listeners){
+            poly.listeners = listeners; //Creo un atributo listeners y le asociado el array recien declarado
+        }else { 
+            //si ya existe el array de listerner en el objeto poly: añado los nuevos listeners
+            for (var i=0; i<listeners.length; i++){
+                poly.listeners.push(listeners[i]);
+            }
+        }
+    }
+
+    function killListeners (poly){
+    //Elimino los listener del array de Listeners
+        for (var i=poly.listeners.length-1; i>=0;i--){
+            poly.listeners[i].remove();
+            poly.listeners.pop
+        }   
+    }
+
+    function switchListeners (flag){
+    //Cambio la propiedad active de todos los placemarkers
+    //Todos los listerners los he hecho que verifiquen esta propiedad para desactivarse o activarse
+        for (var n=0; n<geoXml.docs.length; n++){
+            //Polygons
+            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
+                geoXml.docs[n].gpolygons[i].active=flag;
+            }
+            
+            //Markers
+            for (var i = 0; i < geoXml.docs[n].markers.length; i++) {
+                geoXml.docs[n].markers[i].active=flag;
+            }
+
+            //Polylines
+            for (var i = 0; i < geoXml.docs[n].gpolylines.length; i++) {
+                geoXml.docs[n].gpolylines[i].active=flag;
+            }
+        }  
     }
 
     function kmlClick(docID, polyID) {
@@ -142,6 +188,23 @@
                 geoXml.docs[n].gpolygons[i].setMap(map);
             }
         }
+
+//------//Pruebas a eliminar---------------------------------------------------
+        console.log("Pruebo a desactivar los listener");
+        //1. Elimino todos los Listeners
+        /*
+        for (var n=0; n<geoXml.docs.length; n++){
+            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
+                killListeners(geoXml.docs[n].gpolygons[i]);
+            }
+        }
+        */
+        
+        //2. Desactivo la propiedad "active" que usan de flag
+        switchListeners (false);
+        //switchListeners (true);
+
+//--------------------------------------------------------------------------
     }
 
     function kmlShowPoly(docID, polyID) {

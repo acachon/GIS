@@ -656,18 +656,19 @@ function capasClick(){
 function toogleViewable (layerID){
 //Cambia de visible a no visible y viceversa el contenido de la capa indicada por su layerID
     console.log("Cambia Viewable del LayerID: " + layerID + " (" + !layersControl[layerID].flagViewable + ")");
+    
+    //Llama al metodo interno de geoXml que muestra u oculta todos los docs
     layersControl[layerID].flagViewable ? geoXml.hideDocument() : geoXml.showDocument() ;   //Show or hide
+    
     layersControl[layerID].flagViewable = !layersControl[layerID].flagViewable;             //toggle status flag
 }
 
 function toogleClickable (layerID){
 //Cambia de seleccionable a no'selecccionable y viceversa el contenido de la capa indicada por su layerID
     console.log("Cambia Clickable del LayerID: " + layerID + " (" + !layersControl[layerID].flagClickable + ")");
-
-    //Hace seleccionable la capa
-    //Pruebo con el atributo clickable del marcador primero ....
-    console.log("Marker clickable?: " + geoXml.docs[0].markers[0].clickable);
-    geoXml.docs[0].markers[0].clickable =   !geoXml.docs[0].markers[0].clickable;
+    
+    //Cambia la propiedad "active" de todos los placemarks para des/habilitar los listeners
+    switchListeners(!layersControl[layerID].flagClickable);
 
     layersControl[layerID].flagClickable = !layersControl[layerID].flagClickable;             //toggle status flag
 }

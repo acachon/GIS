@@ -111,7 +111,7 @@ if (!String.prototype.trim) {
 }
 
 //--------------------------------------------------------------//
-// Constructor for the root KML parser object
+// Constructor for the root KML parser object (ver metodo render)
 // 1. options if provided (defaultParserOptions) override default 
 // 2. Crea el docs[]
 // 3. Pinta en el mapa y crea los placemarks en googleMaps
@@ -215,6 +215,8 @@ geoXML3.parser = function (options) {
     }
 
     // 3. Proceso el fichero importado y lo muestro en el mapa
+    // Esta es la funcion principal del parsing //
+    //------------------------------------------//
     var render = function (responseXML, doc) {
     // Callback for retrieving a KML document: parse the KML and display it on the map
         if (!responseXML || responseXML == "failed parse") {
@@ -644,19 +646,16 @@ geoXML3.parser = function (options) {
 
         doc.internals.remaining -= 1;
 
+        //Finalizo el rendering tras haber recorrido todos los docs
+        //Llamo al callback y actualizo el objecto geoXml
         if (doc.internals.remaining === 0) {
-            // We're done processing this set of KML documents
-            // Options that get invoked after parsing completes
+        // We're done processing this set of KML documents
+        // Options that get invoked after parsing completes
 
             //Hago zoom en la capa cargada
             if (parserOptions.zoom && !!doc.internals.bounds &&
                 !doc.internals.bounds.isEmpty() && !!parserOptions.map) {
                 parserOptions.map.fitBounds(doc.internals.bounds);
-            }
-            
-            //Llamo a la funcion callback definida por afterParse
-            if (parserOptions.afterParse) {
-                parserOptions.afterParse(doc.internals.docSet);
             }
 
             //Almaceno el resultado en doc
@@ -667,6 +666,11 @@ geoXML3.parser = function (options) {
                 }
             }
 
+            //Llamo a la funcion callback definida por afterParse
+            if (parserOptions.afterParse) {
+                parserOptions.afterParse(doc.internals.docSet);
+            }
+
             //No tengo claro lo que hace exactamente
             google.maps.event.trigger(doc.internals.parser, 'parsed');
         }
@@ -674,9 +678,6 @@ geoXML3.parser = function (options) {
 
     //Recupera del nodo de stilo (thisNode) los parametros del estilo en custion (styleID)
     //Devuelve Los parametros del estilo se guardan en styles[styleID] como atributos segun el tipo de style que sea
-    //Icono: scale, href
-    //Polyline: color, colorMode, width
-    //Polygon: outline, fill, fillColor, colorMode
     function processStyle(thisNode, styles, styleID) {
         //elimina caracteres en blanco y ociosos del fichero KML
         var nodeValue = geoXML3.nodeValue;      
@@ -717,7 +718,6 @@ geoXML3.parser = function (options) {
     }
 
     //Como la anterior pero para StyleMap solo
-    //map.normal: key, style, styleurl 
     function processStyleMap(thisNode, styles, styleID) {
         var nodeValue = geoXML3.nodeValue;
         var pairs = thisNode.getElementsByTagName('Pair');
@@ -834,66 +834,75 @@ geoXML3.parser = function (options) {
     // Metodos de geoXML3 para manejar el conjunto   //
     //-----------------------------------------------//     
 
-    //Oculta del mapa todos los elementos de un doc concreto, si no se pasa coge el docs[0]
-    var hideDocument = function (doc) {
-        if (!doc) doc = docs[0];
-        // Hide the map objects associated with a document 
-        var i;
-        if (!!window.google && !!google.maps) {
-            if (!!doc.markers) {
-                for (i = 0; i < doc.markers.length; i++) {
-                    if (!!doc.markers[i].infoWindow) doc.markers[i].infoWindow.close();
-                    doc.markers[i].setVisible(false);
-                }
-            }
-            if (!!doc.ggroundoverlays) {
-                for (i = 0; i < doc.ggroundoverlays.length; i++) {
-                    doc.ggroundoverlays[i].setOpacity(0);
-                }
-            }
-            if (!!doc.gpolylines) {
-                for (i = 0; i < doc.gpolylines.length; i++) {
-                    if (!!doc.gpolylines[i].infoWindow) doc.gpolylines[i].infoWindow.close();
-                    doc.gpolylines[i].setMap(null);
-                }
-            }
-            if (!!doc.gpolygons) {
-                for (i = 0; i < doc.gpolygons.length; i++) {
-                    if (!!doc.gpolygons[i].infoWindow) doc.gpolygons[i].infoWindow.close();
-                    doc.gpolygons[i].setMap(null);
-                }
-            }
-        }
-    };
-    //Muestra toda la capa docs[i] indicada o toma el docs[0] en su defecto
-    var showDocument = function (doc) {
-        if (!doc) doc = docs[0];
-        // Show the map objects associated with a document 
-        var i;
-        if (!!window.google && !!google.maps) {
-            if (!!doc.markers) {
-                for (i = 0; i < doc.markers.length; i++) {
-                    doc.markers[i].setVisible(true);
-                }
-            }
-            if (!!doc.ggroundoverlays) {
-                for (i = 0; i < doc.ggroundoverlays.length; i++) {
-                    doc.ggroundoverlays[i].setOpacity(doc.ggroundoverlays[i].percentOpacity_);
-                }
-            }
-            if (!!doc.gpolylines) {
-                for (i = 0; i < doc.gpolylines.length; i++) {
-                    doc.gpolylines[i].setMap(parserOptions.map);
-                }
-            }
-            if (!!doc.gpolygons) {
-                for (i = 0; i < doc.gpolygons.length; i++) {
-                    doc.gpolygons[i].setMap(parserOptions.map);
-                }
-            }
-        }
-    };
+    //Oculta del mapa todos los elementos de un doc concreto (document), si no se pasa coge el docs[0]
+    var hideDocument = function (document) {
 
+        for (var n=0; n<this.docs.length;n++){
+            !document? doc = docs[n]: doc= document;    // si no se pasa un doc concreto, hago el bucle entero y oculto todo doc
+
+            // Hide the map objects associated with a document 
+            var i;
+            if (!!window.google && !!google.maps) {
+                if (!!doc.markers) {
+                    for (i = 0; i < doc.markers.length; i++) {
+                        if (!!doc.markers[i].infoWindow) doc.markers[i].infoWindow.close();
+                        doc.markers[i].setVisible(false);
+                    }
+                }
+                if (!!doc.ggroundoverlays) {
+                    for (i = 0; i < doc.ggroundoverlays.length; i++) {
+                        doc.ggroundoverlays[i].setOpacity(0);
+                    }
+                }
+                if (!!doc.gpolylines) {
+                    for (i = 0; i < doc.gpolylines.length; i++) {
+                        if (!!doc.gpolylines[i].infoWindow) doc.gpolylines[i].infoWindow.close();
+                        doc.gpolylines[i].setMap(null);
+                    }
+                }
+                if (!!doc.gpolygons) {
+                    for (i = 0; i < doc.gpolygons.length; i++) {
+                        if (!!doc.gpolygons[i].infoWindow) doc.gpolygons[i].infoWindow.close();
+                        doc.gpolygons[i].setMap(null);
+                    }
+                }
+            }
+            if (!!document) break; //Si se ha pasado un doc concreto, una vez procesado ese me salgo del bucle de docs[n]
+        }
+    };
+    //Muestra toda la capa docs[i] indicada por document o toma todos los docs en su defecto
+    var showDocument = function (document) {
+
+        for (var n=0; n<this.docs.length;n++){
+            !document? doc = docs[n]: doc= document;    // si no se pasa un doc concreto, hago el bucle entero y oculto todo doc
+        
+            // Show the map objects associated with a document 
+            var i;
+            if (!!window.google && !!google.maps) {
+                if (!!doc.markers) {
+                    for (i = 0; i < doc.markers.length; i++) {
+                        doc.markers[i].setVisible(true);
+                    }
+                }
+                if (!!doc.ggroundoverlays) {
+                    for (i = 0; i < doc.ggroundoverlays.length; i++) {
+                        doc.ggroundoverlays[i].setOpacity(doc.ggroundoverlays[i].percentOpacity_);
+                    }
+                }
+                if (!!doc.gpolylines) {
+                    for (i = 0; i < doc.gpolylines.length; i++) {
+                        doc.gpolylines[i].setMap(parserOptions.map);
+                    }
+                }
+                if (!!doc.gpolygons) {
+                    for (i = 0; i < doc.gpolygons.length; i++) {
+                        doc.gpolygons[i].setMap(parserOptions.map);
+                    }
+                }
+            }
+            if (!!document) break; //Si se ha pasado un doc concreto, una vez procesado ese me salgo del bucle de docs[n]
+        }
+    };
 
     //-----------------------------------------------//
     // Funciones internas para crear los placemarks  //
@@ -936,6 +945,8 @@ geoXML3.parser = function (options) {
 
             // Infowindow-opening event handler
             google.maps.event.addListener(marker, 'click', function () {
+                if (!marker.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa
+
                 this.infoWindow.close();
                 marker.infoWindow.setOptions(this.infoWindowOptions);
                 this.infoWindow.open(this.map, this);
@@ -996,6 +1007,8 @@ geoXML3.parser = function (options) {
             p.infoWindowOptions = infoWindowOptions;
             // Infowindow-opening event handler
             google.maps.event.addListener(p, 'click', function (e) {
+                if (!p.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa
+
                 p.infoWindow.close();
                 p.infoWindow.setOptions(p.infoWindowOptions);
                 if (e && e.latLng) {
@@ -1077,6 +1090,8 @@ geoXML3.parser = function (options) {
             p.infoWindowOptions = infoWindowOptions;
             // Infowindow-opening event handler
             google.maps.event.addListener(p, 'click', function (e) {
+                if (!p.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa
+
                 p.infoWindow.close();
                 p.infoWindow.setOptions(p.infoWindowOptions);
                 if (e && e.latLng) {
@@ -1091,7 +1106,6 @@ geoXML3.parser = function (options) {
         placemark.polygon = p;
         return p;
     }
-
 
     //------------------------------------------//   
     // funciones y codigo a eliminar o puntear  //
@@ -1190,10 +1204,6 @@ geoXML3.parser = function (options) {
         return overlay;
     };
 
-
-
-
-
     return {
         // Expose some properties and methods
 
@@ -1213,7 +1223,7 @@ geoXML3.parser = function (options) {
     };
 };
 // End of KML Parser
-//-----------------------
+//--------------------------------------------------------------//
 
 // Extraxct Opacity from color atributes in kML when it exits (1 if not)
 geoXML3.getOpacity = function (kmlColor) {
