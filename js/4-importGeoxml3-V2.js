@@ -76,7 +76,7 @@
         //*/
     };
 
-    function useTheData(doc) {
+    function useTheData(docs) {
     //Crea un listado (html a incrustar) dinamico en la ventana lateral con las parcelas importadas
     
         //Construyo el codigo html de la ventana lateral con la info de la parcela
@@ -84,11 +84,11 @@
 
         //Crear el sidebar con la info de todos los poligonos y parcelas
         //CReo un listenr en cada pol'igono para resaltarlo con mouseover
-        for (var n=0; n<doc.length; n++){
+        for (var n=0; n<docs.length; n++){
             //Recorro todas las poligonales de la n-capa KML (subparcelas) para ponerlas en el sidebar y darles formato   
             for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
                 //Creo una nueva fila en el sidebar con la info de cada poligono: y le asigno una funcion de mouseover/out/etc...
-                sidebarHtml += '<tr><td onmouseover="kmlHighlightPoly(' + n + "," + i + ');" onmouseout="kmlUnHighlightPoly(' + n + "," + i + ');"><a href="javascript:kmlClick(' + n + "," + i + ');">' + doc[0].placemarks[i].name + '</a> - <a href="javascript:kmlShowPoly(' + n + "," + i + ');">show</a></td></tr>';
+                sidebarHtml += '<tr><td onmouseover="kmlHighlightPoly(' + n + "," + i + ');" onmouseout="kmlUnHighlightPoly(' + n + "," + i + ');"><a href="javascript:kmlClick(' + n + "," + i + ');">' + docs[0].placemarks[i].name + '</a> - <a href="javascript:kmlShowPoly(' + n + "," + i + ');">show</a></td></tr>';
                 //Aplico el estilo normal por defecto y creo los listener de mouseover/out para realzar la subparacela
                 geoXml.docs[n].gpolygons[i].normalStyle = normalStyle;
                 highlightPolyListener(geoXml.docs[n].gpolygons[i]);   //Creo los listener en esta subparcela
@@ -172,15 +172,8 @@
 
     function showAllPoly() {
     //Muestra todas las subparcelas y ajusta el zoom para verse todas
-        //Creo el bounds agregado
-        var bounds = new google.maps.LatLngBounds();
-        for (var n=0; n<geoXml.docs.length; n++){
-            point1  = new google.maps.LatLng(geoXml.docs[n].bounds.f.b,geoXml.docs[n].bounds.b.b);
-            point2  = new google.maps.LatLng(geoXml.docs[n].bounds.f.f,geoXml.docs[n].bounds.b.f);
-            bounds.extend(point1);
-            bounds.extend(point2);
-        }
-        map.fitBounds(bounds);
+        //Zoom a todos los docs[]
+        map.fitBounds(geoXml.boundsAll());
 
         //Muestro todas las subparcelas
         for (var n=0; n<geoXml.docs.length; n++){
@@ -190,19 +183,7 @@
         }
 
 //------//Pruebas a eliminar---------------------------------------------------
-        console.log("Pruebo a desactivar los listener");
-        //1. Elimino todos los Listeners
-        /*
-        for (var n=0; n<geoXml.docs.length; n++){
-            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
-                killListeners(geoXml.docs[n].gpolygons[i]);
-            }
-        }
-        */
-        
-        //2. Desactivo la propiedad "active" que usan de flag
-        switchListeners (false);
-        //switchListeners (true);
+        console.log("Pruebas acachon");
 
 //--------------------------------------------------------------------------
     }

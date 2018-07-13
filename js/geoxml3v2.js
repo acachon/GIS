@@ -128,26 +128,13 @@ geoXML3.parser = function (options) {
     geoXML3.xhrTimeout = parserOptions.xhrTimeout;  //timeout maximo para cargar archivo KML (1min por defecto)
 
     var docs = [];                              // Individual KML documents cargados
-    var parserName;         
+    var parserName;
+    //var boundsAll;                              // Atributo con el bounds agregado de todos los docs       
 
     // Metodos y funciones del constructor del geoXML3.parser   //
     //----------------------------------------------------------//
 
-    var parseKmlString = function (kmlString, docSet) {
-    // Internal values for the set of documents as a whole
-        var internals = {
-            parser: this,
-            docSet: docSet || [],
-            remaining: 1,
-            parseOnly: !(parserOptions.afterParse || parserOptions.processStyles)
-        };
-        thisDoc = new Object();
-        thisDoc.internals = internals;
-        internals.docSet.push(thisDoc);
-        render(geoXML3.xmlParse(kmlString), thisDoc);
-    }
-
-    // 1. CReo los objetos doc y los atributos,url, etc para importar y llamo al importador
+     // 1. CReo los objetos doc y los atributos,url, etc para importar y llamo al importador
     var parse = function (urls, docSet) {
     // Process one or more KML documents
     // urls es un array de string con las rutas de cada KML a importar
@@ -664,11 +651,18 @@ geoXML3.parser = function (options) {
                 for (var i = 0; i < doc.internals.docSet.length; i++) {
                     docs.push(doc.internals.docSet[i]);
                 }
+                //TODO: pruebo si me lo cargo o lo limpio
+                docs.forEach(element => {
+                    element.internals=""
+                });
+                
+                //docs[0].internals="";
             }
 
             //Llamo a la funcion callback definida por afterParse
             if (parserOptions.afterParse) {
-                parserOptions.afterParse(doc.internals.docSet);
+                parserOptions.afterParse(docs);
+                //parserOptions.afterParse(doc.internals.docSet);
             }
 
             //No tengo claro lo que hace exactamente
@@ -830,9 +824,9 @@ geoXML3.parser = function (options) {
         return '#' + col.rr + col.gg + col.bb;
     };
 
-    //-----------------------------------------------//
-    // Metodos de geoXML3 para manejar el conjunto   //
-    //-----------------------------------------------//     
+    //-----------------------------------------------------------//
+    // Metodos exportados por geoXML3 para manejar el conjunto   //
+    //-----------------------------------------------------------//     
 
     //Oculta del mapa todos los elementos de un doc concreto (document), si no se pasa coge el docs[0]
     var hideDocument = function (document) {
@@ -903,6 +897,19 @@ geoXML3.parser = function (options) {
             if (!!document) break; //Si se ha pasado un doc concreto, una vez procesado ese me salgo del bucle de docs[n]
         }
     };
+    //Metodo pra calcular los bounds agregados de todos los docs[]
+    var boundsAll = function () {
+    //Calculo el bound agregado de todos los docs
+        //Asigno a boundsAll el bounds agregado incluyendo todos los docs[]
+        var bounds = new google.maps.LatLngBounds();
+        for (var n=0; n<docs.length; n++){
+            point1  = new google.maps.LatLng(docs[n].bounds.f.b,geoXml.docs[n].bounds.b.b);
+            point2  = new google.maps.LatLng(docs[n].bounds.f.f,geoXml.docs[n].bounds.b.f);
+            bounds.extend(point1);
+            bounds.extend(point2);
+        }
+        return bounds;
+    }
 
     //-----------------------------------------------//
     // Funciones internas para crear los placemarks  //
@@ -1111,6 +1118,21 @@ geoXML3.parser = function (options) {
     // funciones y codigo a eliminar o puntear  //
     //------------------------------------------//
     
+
+    var parseKmlString = function (kmlString, docSet) {
+    // Internal values for the set of documents as a whole
+        var internals = {
+            parser: this,
+            docSet: docSet || [],
+            remaining: 1,
+            parseOnly: !(parserOptions.afterParse || parserOptions.processStyles)
+        };
+        thisDoc = new Object();
+        thisDoc.internals = internals;
+        internals.docSet.push(thisDoc);
+        render(geoXML3.xmlParse(kmlString), thisDoc);
+    }
+
     //Ajusta el formato del icono que se haya pasado.
     //complicado y no le veo la utilidad.
     //ToDo: eliminar esta funcion y la processStyles() o bien configurar como processStyles=false
@@ -1206,20 +1228,19 @@ geoXML3.parser = function (options) {
 
     return {
         // Expose some properties and methods
-
         options: parserOptions,
         docs: docs,
-
-        parse: parse,
-        render: render,
-        parseKmlString: parseKmlString,
+        boundsAll: boundsAll,
         hideDocument: hideDocument,
         showDocument: showDocument,
-        processStyles: processStyles,
-        createMarker: createMarker,
-        createOverlay: createOverlay,
-        createPolyline: createPolyline,
-        createPolygon: createPolygon
+        parse: parse,
+        //render: render,
+        //parseKmlString: parseKmlString,
+        //processStyles: processStyles,
+        //createMarker: createMarker,
+        //createOverlay: createOverlay,
+        //createPolyline: createPolyline,
+        //createPolygon: createPolygon
     };
 };
 // End of KML Parser
