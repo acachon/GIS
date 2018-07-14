@@ -154,7 +154,7 @@ geoXML3.parser = function (options) {
         // Internal values for the set of documents as a whole
         var internals = {
             parser: this,
-            docSet: docSet || [],               //Almaceno el listado de documentos (capas KML, definidas por su baseUrl) que proceso
+            docSet: docSet || [],               //Almaceno el listado de documentos (capas KML, definidas por su Url) que proceso
             remaining: urls.length,
             parseOnly: !(parserOptions.afterParse || parserOptions.processStyles)
         };
@@ -166,11 +166,13 @@ geoXML3.parser = function (options) {
         var thisDoc, j;
         for (var i = 0; i < urls.length; i++) {         
         //Recorro cada url para repetirlo con cada capa solicitada
-            var baseUrl = urls[i].split('?')[0];
-
-            //Miro si el documento ya lo tengo y lo Recargo en caso de que tenga la misma base que uno anterior    
+        
+            //var baseUrl = urls[i].split('?')[0];
+            var singleUrl = urls[i];                //Cambio esto en el geoXML.parse porque la baseUrl es simepre catastro    
             for (j = 0; j < docs.length; j++) {     
-                if (baseUrl === docs[j].baseUrl) {
+                //if (baseUrl === docs[j].baseUrl) {
+                if (singleUrl === docs[j].url) {
+
                     // Reloading an existing document
                     thisDoc = docs[j];
                     thisDoc.reload = true;

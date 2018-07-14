@@ -540,36 +540,20 @@ function mostrarRC(miLatLng){
         geoXmlNew.parse("https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="+ respuesta +"&del=23&mun=900&tipo=3d");
         */
 
-        //3. Incluyo la nueva RC para hacer un nuevo import de capas XML al catastro y gestionarlo desde geoXML
+        //3. Llamo al parser de geoXml o creo uno si es que no existe aun
         if (!geoXml){                           //Si no existe ya alguna capa XML importada del catastro
             geoXml = new geoXML3.parser({
                 map: map,
                 singleInfoWindow: true,
                 afterParse: useTheData
             });
-            //Importo la capa del catastro, la formateo y la muestor en el mapa
-            geoXml.parse(
-                "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
-                + respuesta 
-                +"&del=23&mun=900&tipo=3d"
-            );
-
-        } else {                                //Si ya existe un objeto geoXML con capas del catastro
-            var urls=[];
-            //Almaceno las parcelas (sus urls) ya cargadas y las guardo en un #unico array 
-            geoXml.docs.forEach(element => {
-                urls.push(element.url);
-            });
-            //Añado al nueva url
-            urls.push(
-                "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
-                + respuesta 
-                +"&del=23&mun=900&tipo=3d"
-            );
-            //Vuelvo a importar del catastro ahora con la nueva url incluida
-            geoXml.parse(urls);
         }
-
+        //Importo la capa del catastro, la formateo y la muestor en el mapa
+        geoXml.parse(
+            "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
+            + respuesta 
+            +"&del=23&mun=900&tipo=3d"
+        );        
     });
 }
 
