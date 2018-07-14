@@ -168,10 +168,10 @@ geoXML3.parser = function (options) {
         //Recorro cada url para repetirlo con cada capa solicitada
         
             //var baseUrl = urls[i].split('?')[0];
-            var singleUrl = urls[i];                //Cambio esto en el geoXML.parse porque la baseUrl es simepre catastro    
+            var baseUrl = urls[i];                //Cambio esto en el geoXML.parse porque la baseUrl es simepre catastro    
             for (j = 0; j < docs.length; j++) {     
-                //if (baseUrl === docs[j].baseUrl) {
-                if (singleUrl === docs[j].url) {
+                if (baseUrl === docs[j].baseUrl) {
+                //if (singleUrl === docs[j].url) {
 
                     // Reloading an existing document
                     thisDoc = docs[j];
