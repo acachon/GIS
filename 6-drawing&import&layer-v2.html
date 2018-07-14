@@ -21,21 +21,24 @@
                     <span id="#A" style="float:right;color: red">A</span>
                     <span id="#B" style="float:right;color: blue">B</span>
                     <span id="#C" style="float:right;color: green">C</span>
-
-                </p>
-                <p id="#about">About
-                    <span id="#img1" style="float:right"><img class="imagen" src="./img/visible.png"></span>
-                    <span id="#img2" style="float:right"><img class="imagen" src="./img/seleccionar.png"></span>
-                    <span id="#img3" style="float:right"><img class="imagen" src="./img/edit.png"></span>
                 </p>
                 <p id=1 >Catastro
                     <span style="float:right"><img id="#ver1" class="imagen" src="./img/visible.png" onclick="toogleViewable(1);"></span>
                     <span style="float:right"><img id="#seleccionar1" class="imagen" src="./img/seleccionar.png" onclick="toogleClickable(1)"></span>
                     <span style="float:right"><img id="#editar1" class="imagen" src="./img/edit.png" onclick="toogleEditable(1)"></span>
                 </p>
+                <p id=0 >Mapas
+                    <span style="float:right"><img id="#ver0" class="imagen" src="./img/visible.png" onclick="toogleViewable(0);"></span>
+                    <span style="float:right"><img id="#seleccionar0" class="imagen" src="./img/seleccionar.png" onclick="toogleClickable(0)"></span>
+                    <span style="float:right"><img id="#editar0" class="imagen" src="./img/edit.png" onclick="toogleEditable(0)"></span>
+                </p>
               </div>
         </div>
-
+        <!-- TODO: 
+            1. Crear otra tabla desplegable bajo "Mapas" con los mapas disponibles y visible cuando pinche seleccionar
+            2. Poner maptype a null cuanod se pinche no visible
+            3. Desactivar y no mostrar las herramientas cuando desactive editar
+        -->
         <script language="javascript" src="./js/1-drawingToolsV5.js"></script>
         <!--Libreria Drawing para los controles de dibujo, la de geometry para contar dentro del poligono--> 
         <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCRbr23Yvm71EcdyAP2QK8dr_W2rh6usJs&libraries=drawing,geometry&callback=initMap" async defer></script>
