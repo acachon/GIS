@@ -50,7 +50,7 @@ var layersControl = [
         layerName:      "Catastro",
         flagViewable:   true,
         flagClickable:  true,
-        flagEditable:   false,
+        flagEditable:   true,
     },
 ]
 
@@ -529,32 +529,37 @@ function mostrarRC(miLatLng){
     refCatastralCoordenadas(miLatLng, function(respuesta){
         //2. Muestro el RC en el visor inferior 
         document.getElementById("info-box").innerText=respuesta;
-        
-        //3. Muestro la capa KML en el mapa
-        /*
-        geoXmlNew = new geoXML3.parser({
+    
+    //Importo la referencia catastral del servicio web de Catastro y lo incluyo en el mapa y geoXml
+    importarRC(respuesta); 
+
+    });
+}
+
+function importarRC(refCatastral){
+//Importa del catastro la referencia catastral que se le solicita
+//Llama a useTheData como callback para actuar tras importar la capa XML
+
+    //Si la capa catastro (1) no es editable (false) no permito incluir nuevas capas y trae esta del catastro
+    if (!layersControl[1].flagEditable) {
+        console.log("importarRC: la capa catastro esta no editable");
+        return;
+    }
+    //------------------------------------------------ 
+    
+    if (!geoXml){                           //Si no existe ya alguna capa XML importada del catastro
+        geoXml = new geoXML3.parser({
             map: map,
             singleInfoWindow: true,
             afterParse: useTheData
         });
-        geoXmlNew.parse("https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="+ respuesta +"&del=23&mun=900&tipo=3d");
-        */
-
-        //3. Llamo al parser de geoXml o creo uno si es que no existe aun
-        if (!geoXml){                           //Si no existe ya alguna capa XML importada del catastro
-            geoXml = new geoXML3.parser({
-                map: map,
-                singleInfoWindow: true,
-                afterParse: useTheData
-            });
-        }
-        //Importo la capa del catastro, la formateo y la muestor en el mapa
-        geoXml.parse(
-            "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
-            + respuesta 
-            +"&del=23&mun=900&tipo=3d"
-        );        
-    });
+    }
+    //Importo la capa del catastro, la formateo y la muestor en el mapa
+    geoXml.parse(
+        "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
+        + refCatastral 
+        +"&del=23&mun=900&tipo=3d"
+    ); 
 }
 
 
@@ -673,7 +678,9 @@ function toogleViewable (layerID){
     console.log("Cambia Viewable del LayerID: " + layerID + " (" + !layersControl[layerID].flagViewable + ")");
     
     //Llama al metodo interno de geoXml que muestra u oculta todos los docs
-    layersControl[layerID].flagViewable ? geoXml.hideDocument() : geoXml.showDocument() ;   //Show or hide
+    layersControl[layerID].flagViewable ? geoXml.hideDocument() : geoXml.showDocument() ;       //Show or hide
+    layersControl[layerID].flagViewable ? src="./img/invisible.png" : src="./img/visible.png" ; //Next icon to be updated
+    document.getElementById("#ver" + layerID).src=src;                                          //Cambio el icono
     
     layersControl[layerID].flagViewable = !layersControl[layerID].flagViewable;             //toggle status flag
 }
@@ -684,6 +691,24 @@ function toogleClickable (layerID){
     
     //Cambia la propiedad "active" de todos los placemarks para des/habilitar los listeners
     geoXml.activatePlacemarks(!layersControl[layerID].flagClickable);
+    layersControl[layerID].flagClickable ? src="./img/noseleccionar.png" : src="./img/seleccionar.png"; //Next icon to be updated
+    document.getElementById("#seleccionar" + layerID).src=src;                                          //Cambio el icono
 
-    layersControl[layerID].flagClickable = !layersControl[layerID].flagClickable;             //toggle status flag
+    layersControl[layerID].flagClickable = !layersControl[layerID].flagClickable;                       //toggle status flag
+}
+
+function toogleEditable (layerID){
+//Cambia de editable a noeditable y viceversa el contenido de la capa indicada por su layerID
+    console.log("Cambia Editable del LayerID: " + layerID + " (" + !layersControl[layerID].flagEditable + ")");
+    
+    //Cambia la propiedad "active" de todos los placemarks para des/habilitar los listeners
+    //Activa o desactiva un flag para inhibir los listener
+
+    //Layer1 (catastro): al cambiar el flagEditable de esta layer, inhinibe la funcion mostrar RC que importa nuevas capas de Catastro
+
+    //-----------------------------------------------------
+    layersControl[layerID].flagEditable ? src="./img/noedit.png" : src="./img/edit.png";    //Next icon to be updated
+    document.getElementById("#editar" + layerID).src=src;                              //Cambio el icono
+
+    layersControl[layerID].flagEditable = !layersControl[layerID].flagEditable;           //toggle status flag
 }

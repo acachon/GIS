@@ -171,8 +171,6 @@ geoXML3.parser = function (options) {
             var baseUrl = urls[i];                //Cambio esto en el geoXML.parse porque la baseUrl es simepre catastro    
             for (j = 0; j < docs.length; j++) {     
                 if (baseUrl === docs[j].baseUrl) {
-                //if (singleUrl === docs[j].url) {
-
                     // Reloading an existing document
                     thisDoc = docs[j];
                     thisDoc.reload = true;
@@ -924,15 +922,14 @@ geoXML3.parser = function (options) {
             //Activo los markers como indica el flag
             doc.markers.forEach(element => {
                 element.active = flag;
+                //Borro los titulos y los vuelvo a crear segun este activo o no
+                !flag? titulo="" : titulo = element.infoWindowOptions.content.split('3>')[1].slice(0, -3);    //El titulo esta tambien en el conenido de infoWindows
+                element.setTitle(titulo);   //El title hay que cambiarlo con setTitle o no se modifica por parte de GoogleMaps si lo haces .title=""
             });
             //Activo los polygons como indica el flag
-            doc.gpolygons.forEach(element => {
-                element.active = flag;
-            });
+            doc.gpolygons.forEach(element => {element.active = flag;});
             //Activo los polylines como indica el flag
-            doc.gpolylines.forEach(element => {
-                element.active = flag;
-            });
+            doc.gpolylines.forEach(element => {element.active = flag;});
 
             if (document) break;    //Si se solicito para un solo doc en concreto (document) salgo del bucle de docs[]
         }
@@ -1145,7 +1142,7 @@ geoXML3.parser = function (options) {
     // funciones y codigo a eliminar o puntear  //
     //------------------------------------------//
     
-
+//----------------------------------------------------------------
     var parseKmlString = function (kmlString, docSet) {
     // Internal values for the set of documents as a whole
         var internals = {
@@ -1253,6 +1250,10 @@ geoXML3.parser = function (options) {
         return overlay;
     };
 
+//----------------------------------------------------------------
+
+
+
     return {
         // Expose some properties and methods
         options: parserOptions,
@@ -1272,6 +1273,7 @@ geoXML3.parser = function (options) {
         //createPolygon: createPolygon
     };
 };
+
 // End of KML Parser
 //--------------------------------------------------------------//
 

@@ -154,12 +154,15 @@
         //Zoom a todos los docs[]
         map.fitBounds(geoXml.boundsAll());
 
-        //Muestro todas las subparcelas
-        for (var n=0; n<geoXml.docs.length; n++){
-            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
-                geoXml.docs[n].gpolygons[i].setMap(map);
-            }
-        }
+        //Muestro todo el geoXml
+        geoXml.docs.forEach(element => {
+            element.gpolygons.forEach(element => {element.setMap(map)});
+            element.gpolylines.forEach(element => {element.setMap(map)});
+            element.markers.forEach(element => {element.setVisible(true)});
+        });
+
+        //Activo el flag de visibility del layer catastro
+        
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
@@ -170,12 +173,18 @@
 
     function kmlShowPoly(docID, polyID) {
     //Hace zoom en la subparcela polyID y oculta las demas
-        //Oculto toda subparcela
+        //Oculto todo
+        /*
         for (var n=0; n<geoXml.docs.length; n++){
-            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
-                geoXml.docs[n].gpolygons[i].setMap(null);
-            }
+            //Oculto los poligonos
+            geoXml.docs[n].gpolygons.forEach(element => {element.setMap(null)});
+            //Oculto las polilineas
+            geoXml.docs[n].gpolylynes.forEach(element => {element.setMap(null)});
+            //Oculto los marcadores
+            geoXml.docs[n].markers.forEach(element => {element.setVisible(false)});
         }
+        */
+        geoXml.hideDocument();
         
         //Muestro solo la parcela con el indice polyID seleccionado y hago zoom en ella
         geoXml.docs[docID].gpolygons[polyID].setMap(map);
