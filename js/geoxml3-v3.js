@@ -40,6 +40,7 @@ const defaultParserOptions = {
         strokeColor: "#000000",
         strokeWeight: 20,
         strokeOpacity: 1,
+        zIndex: zIndexOffset++,
     },
 };
 
@@ -923,7 +924,9 @@ geoXML3.parser = function (options) {
             doc.markers.forEach(element => {
                 element.active = flag;
                 //Borro los titulos y los vuelvo a crear segun este activo o no
-                !flag? titulo="" : titulo = element.infoWindowOptions.content.split('3>')[1].slice(0, -3);    //El titulo esta tambien en el conenido de infoWindows
+                //Ejemplo de infoWindowOptions.content ....
+                //"<div class="geoxml3_infowindow"><h3>Polígono 15 Parcela 5, JAEN (JAÉN)</h3><div><font size=+1>Consultar en la Sede Electrónica<br>del Catastro la parcela:</font><br><font size=+2><A href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx?del=23&muni=900&rc1=23900A0&rc2=1500005">23900A015000050000SK</a></font></div></div>"
+                !flag? titulo="" : titulo = element.infoWindowOptions.content.split('>')[2].slice(0, -4);    //El titulo esta tambien en el conenido de infoWindows
                 element.setTitle(titulo);   //El title hay que cambiarlo con setTitle o no se modifica por parte de GoogleMaps si lo haces .title=""
             });
             //Activo los polygons como indica el flag
@@ -951,7 +954,8 @@ geoXML3.parser = function (options) {
             title: placemark.name,
             zIndex: Math.round(placemark.Point.coordinates[0].lat * -100000) << 5,
             icon: placemark.style.icon,
-            shadow: placemark.style.shadow
+            shadow: placemark.style.shadow,
+            zIndex: zIndexOffset++,
         });
 
         // Create the marker on the map
@@ -1012,7 +1016,8 @@ geoXML3.parser = function (options) {
             strokeColor: kmlStrokeColor.color,
             strokeWeight: placemark.style.width,
             strokeOpacity: kmlStrokeColor.opacity,
-            title: placemark.name
+            title: placemark.name,
+            zIndex: zIndexOffset++,
         });
         if (paths.length > 1) {
             polyOptions.paths = paths;
@@ -1103,7 +1108,8 @@ geoXML3.parser = function (options) {
             strokeWeight: strokeWeight,
             strokeOpacity: kmlStrokeColor.opacity,
             fillColor: kmlFillColor.color,
-            fillOpacity: kmlFillColor.opacity
+            fillOpacity: kmlFillColor.opacity,
+            zIndex: zIndexOffset++,
         });
         var p = new google.maps.Polygon(polyOptions);
         p.bounds = bounds;

@@ -14,6 +14,7 @@
     //----------------------//
 
     var geoXml = null;      //Objeto con toda la informaicon importada de las capas del catastro
+    var zIndexOffset=10;    //Todos los objetos se indexan desde aqui. Reservo desde el zIndex=0 para mis usos (ej tapaMapa tiene zIndex=0)
 
     //Defino los colores de las subparcelas de manera estatica y me salto lo que viene definido en al capa KML
     const normalStyle = {
