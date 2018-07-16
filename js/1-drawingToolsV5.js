@@ -54,6 +54,10 @@ var layersControl = [
     },
 ];
 
+//----------------------------//
+// FUNCION INICIALIZAR        //
+//----------------------------//
+
 function initMap() {
 //Esta funcion es el callback cuando se carga el API de Google
 //Tambien crea la barra de dibujo y sus listeners (click(editar), rightclick(borrar)) 
@@ -196,6 +200,10 @@ function initMap() {
     // Lanzo al mapa la barra de dibujo
     drawingManager.setMap(map);
 
+    //-------------------------------------------------------------//
+    // Ejemplo de otro tipo de datos, GeoJSON. No lo uso por ahora //
+    //-------------------------------------------------------------//
+    //-------------------------------------------------------------------------------------------------//
     //3. DATOS: Cargo otros tipos de datos, para explorar la capa maps.data
     //A. geoJSON
     migeoJSON = migeoJSON();                    //Creo un objeto con formato geoJSON
@@ -203,8 +211,10 @@ function initMap() {
     map.data.addGeoJson(migeoJSON);             //loadGeoJson("http...") es para cargar un archivo
     map.data.setStyle({
         visible: true,
-        strokeWeight: 5
+        strokeWeight: 5,
+        zIndex: 2,                              //Asi tapaMapa esta por debajo
     });
+    //-------------------------------------------------------------------------------------------------//
 
     //Probando integracion con Catastro !!
     //------------------------------------
@@ -221,7 +231,6 @@ function initMap() {
     );
 
 }
-
 
 //----------------------------//
 // FUNCIONES LOCALES          //
@@ -399,37 +408,6 @@ function creaPuntos(){
     return [misMarkers, ruta];
 }
 
-function migeoJSON(){
-//Devuelvo un fichero geoJSON con puntos y una liena de ejemplo
-    var geoJSON={
-        "type": "Feature",
-        "geometry": 
-        {
-            "type": "GeometryCollection",
-            "geometries": 
-            [
-                {
-                "type": "Point",
-                "coordinates": [-3.7305, 37.8527]
-                },
-                {
-                "type": "LineString",
-                "coordinates": 
-                    [
-                        [-3.7309, 37.8525], 
-                        [-3.7296, 37.8526]
-                    ]
-                }
-            ]
-        },
-        "properties": 
-        {
-            "name": "null island"
-        }
-    };
-    return geoJSON;
-}
-
 function copiarOverlays(){
 //Hace una copia de los overlays que se le pasen en un array. Con un desplazamiento respecto al original
 //Devuelve un array con la copia de los objetos,
@@ -590,6 +568,38 @@ function importarRC(refCatastral){
     ); 
 }
 
+// Funcion que se usa solo a modo de ejemplo de otra forma de importar datos //
+//---------------------------------------------------------------------------//
+function migeoJSON(){
+//Devuelvo un fichero geoJSON con puntos y una liena de ejemplo
+    var geoJSON={
+        "type": "Feature",
+        "geometry": 
+        {
+            "type": "GeometryCollection",
+            "geometries": 
+            [
+                {
+                "type": "Point",
+                "coordinates": [-3.7305, 37.8527]
+                },
+                {
+                "type": "LineString",
+                "coordinates": 
+                    [
+                        [-3.7309, 37.8525], 
+                        [-3.7296, 37.8526]
+                    ]
+                }
+            ]
+        },
+        "properties": 
+        {
+            "name": "null island"
+        }
+    };
+    return geoJSON;
+}
 
 //------------------------------//
 //  Servicios Web del Catastro  //
