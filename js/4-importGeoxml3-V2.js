@@ -131,13 +131,7 @@
         }
     }
 
-    function killListeners (poly){
-    //Elimino los listener del array de Listeners
-        for (var i=poly.listeners.length-1; i>=0;i--){
-            poly.listeners[i].remove();
-            poly.listeners.pop
-        }   
-    }
+
 
     function kmlClick(docID, polyID) {
     //Hace zoom y muestra la subparcela seleccionada como si la clickase
@@ -151,39 +145,21 @@
 
     function showAllPoly() {
     //Muestra todas las subparcelas y ajusta el zoom para verse todas
-        //Zoom a todos los docs[]
-        map.fitBounds(geoXml.boundsAll());
-
         //Muestro todo el geoXml
-        geoXml.docs.forEach(element => {
-            element.gpolygons.forEach(element => {element.setMap(map)});
-            element.gpolylines.forEach(element => {element.setMap(map)});
-            element.markers.forEach(element => {element.setVisible(true)});
-        });
-
-        //Activo el flag de visibility del layer catastro
-        
+        geoXml.showDocument();
+        //Zoom a todos los docs[]
+        map.fitBounds(geoXml.boundsAll());        
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
-        //geoXml.activatePlacemarks(false);
+
+
 
 //--------------------------------------------------------------------------
     }
 
     function kmlShowPoly(docID, polyID) {
     //Hace zoom en la subparcela polyID y oculta las demas
-        //Oculto todo
-        /*
-        for (var n=0; n<geoXml.docs.length; n++){
-            //Oculto los poligonos
-            geoXml.docs[n].gpolygons.forEach(element => {element.setMap(null)});
-            //Oculto las polilineas
-            geoXml.docs[n].gpolylynes.forEach(element => {element.setMap(null)});
-            //Oculto los marcadores
-            geoXml.docs[n].markers.forEach(element => {element.setVisible(false)});
-        }
-        */
         geoXml.hideDocument();
         
         //Muestro solo la parcela con el indice polyID seleccionado y hago zoom en ella
@@ -205,84 +181,14 @@
         geoXml.docs[docID].gpolygons[polyID].setOptions(geoXml.docs[docID].gpolygons[polyID].normalStyle);
     }
 
-    //-----------------------------------------//
-    //Funciones utiles para usar en su momento //
-    //-----------------------------------------//
-    /*
-    function kmlShowMarkers(flag) {
-    //Muestra o no los marcadores KML segun indique el flag (true or false)
-        for (var i = 0; i < geoXmlDoc.markers.length; i++) {
-            geoXmlDoc.markers[i].setVisible(flag);
-        }
-    }
+    //--------------------------------------------------------------//
+    //Funciones a eliminar porque no se usan o  aplican en Catastro //
+    //--------------------------------------------------------------// 
 
-    function kmlShowPolyLines(flag) {
-    //Muestro o no en el mapa las polilineas del KML segun sea el flag (true or false)
-        flag ? canvas=map : canvas=null;
-        for (var i = 0; i < geoXmlDoc.gpolylines.length; i++) {
-            geoXmlDoc.gpolylines[i].setMap(canvas);
-        }
+    function killListeners (poly){
+    //Elimino los listener del array de Listeners
+        for (var i=poly.listeners.length-1; i>=0;i--){
+            poly.listeners[i].remove();
+            poly.listeners.pop
+        }   
     }
-    
-    function kmlShow(flag) {
-    //Muestra toda la capa KML o no segun el flag (true or false)
-        if (flag){ 
-            geoXml.showDocument();
-        }
-        else {      
-            geoXml.hideDocument();
-        }
-    }
-
-    function reload_kml() {
-    //Borra y vuelve a cargar la capa KML
-        geoXml.hideDocument();
-        delete geoXml;
-        geoXml = new geoXML3.parser({
-            map: map,
-            singleInfoWindow: true,
-            afterParse: useTheData
-        });
-        geoXml.parse("https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A015000050000SK&del=23&mun=900&tipo=3d");
-    }
-
-    function kmlColor(kmlIn) {
-    //Convierte el formato de codigo de colores y la opacidad al usado por GoogleMaps
-    //Solo es necesario si cojo los colores del KML. Si los defino estaticamente, no necesito esto
-        var kmlColor = {};
-        if (kmlIn) {
-            aa = kmlIn.substr(0, 2);
-            bb = kmlIn.substr(2, 2);
-            gg = kmlIn.substr(4, 2);
-            rr = kmlIn.substr(6, 2);
-            kmlColor.color = "#" + rr + gg + bb;
-            kmlColor.opacity = parseInt(aa, 16) / 256;
-        } else {
-            // defaults
-            kmlColor.color = defaultColor;
-            kmlColor.opacity = defaultOpacity;
-        }
-        return kmlColor;
-    }
-    
-    function switchListeners (flag){
-    //Cambio la propiedad active de todos los placemarkers
-    //Todos los listerners los he hecho que verifiquen esta propiedad para desactivarse o activarse
-        for (var n=0; n<geoXml.docs.length; n++){
-            //Polygons
-            for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
-                geoXml.docs[n].gpolygons[i].active=flag;
-            }
-            
-            //Markers
-            for (var i = 0; i < geoXml.docs[n].markers.length; i++) {
-                geoXml.docs[n].markers[i].active=flag;
-            }
-
-            //Polylines
-            for (var i = 0; i < geoXml.docs[n].gpolylines.length; i++) {
-                geoXml.docs[n].gpolylines[i].active=flag;
-            }
-        }  
-    }
-    */

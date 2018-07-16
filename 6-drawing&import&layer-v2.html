@@ -15,24 +15,42 @@
         </div>
 
         <div class="dropdown">
-            <button onclick="capasClick()" class="dropbtn">Capas</button>
-              <div id="myDropdown" class="dropdown-content">
-                <p id="#home">Home
-                    <span id="#A" style="float:right;color: red">A</span>
-                    <span id="#B" style="float:right;color: blue">B</span>
-                    <span id="#C" style="float:right;color: green">C</span>
+            <button onclick='document.getElementById("myDropdown").classList.toggle("show");
+                            document.getElementById("myDropdown2").style.display="none";
+                            document.getElementById("#seleccionar0").src="./img/noseleccionar.png";
+                            layersControl[0].flagClickable=false;'        
+                class="dropbtn">
+                Capas
+            </button>
+            
+            <div id="myDropdown" class="dropdown-content">
+            <p id="#home">Pruebas
+                <span id="#A" style="float:right;color: red">A</span>
+                <span id="#B" style="float:right;color: blue">B</span>
+                <span id="#C" style="float:right;color: green">C</span>
+            </p>
+            <p id=1 >Catastro
+                <span style="float:right"><img id="#ver1" class="imagen" src="./img/visible.png" onclick="toogleViewable(1);"></span>
+                <span style="float:right"><img id="#seleccionar1" class="imagen" src="./img/seleccionar.png" onclick="toogleClickable(1)"></span>
+                <span style="float:right"><img id="#editar1" class="imagen" src="./img/noedit.png" onclick="toogleEditable(1)"></span>
+            </p>
+            <p id=0>Mapas
+                <span style="float:right"><img id="#ver0" class="imagen" src="./img/visible.png" onclick="toogleViewable(0);"></span>
+                <span style="float:right"><img id="#seleccionar0" class="imagen" src="./img/noseleccionar.png" onclick="toogleClickable(0)"></span>
+                <span style="float:right"><img id="#editar0" class="imagen" src="./img/edit.png" onclick="toogleEditable(0)"></span>
+            </p>  
+            </div>
+            <div id="myDropdown2" style="display: none" class="dropdown-content2">
+                <p id="#capa1" onclick='map.setMapTypeId(google.maps.MapTypeId.SATELLITE);console.log("Capa seleccionada: Satellite");'>               
+                    Satellite
                 </p>
-                <p id=1 >Catastro
-                    <span style="float:right"><img id="#ver1" class="imagen" src="./img/visible.png" onclick="toogleViewable(1);"></span>
-                    <span style="float:right"><img id="#seleccionar1" class="imagen" src="./img/seleccionar.png" onclick="toogleClickable(1)"></span>
-                    <span style="float:right"><img id="#editar1" class="imagen" src="./img/edit.png" onclick="toogleEditable(1)"></span>
+                <p id="#capa2" onclick='map.setMapTypeId(google.maps.MapTypeId.ROADMAP);console.log("Capa seleccionada: Roadmap");'>               
+                    Roadmap
                 </p>
-                <p id=0 >Mapas
-                    <span style="float:right"><img id="#ver0" class="imagen" src="./img/visible.png" onclick="toogleViewable(0);"></span>
-                    <span style="float:right"><img id="#seleccionar0" class="imagen" src="./img/seleccionar.png" onclick="toogleClickable(0)"></span>
-                    <span style="float:right"><img id="#editar0" class="imagen" src="./img/edit.png" onclick="toogleEditable(0)"></span>
+                <p id="#capa3" onclick='map.setMapTypeId(google.maps.MapTypeId.TERRAIN);console.log("Capa seleccionada: Terrain");'>               
+                    Terrain
                 </p>
-              </div>
+            </div>                                            
         </div>
         <!-- TODO: 
             1. Crear otra tabla desplegable bajo "Mapas" con los mapas disponibles y visible cuando pinche seleccionar

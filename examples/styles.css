@@ -1,0 +1,163 @@
+#mapas {                    /*La caja del menu*/
+  height: 100px;
+  display: block;
+  border: 1px solid;
+  border-radius: 5px;         /* redondea la caja*/
+  width: auto;
+  border-color: #f8f6f6;
+  background: #3c3c3c;
+}
+#mapas > ul > li {
+  list-style: inside none;    /* sin marcador de lista*/
+  display: block;
+  position: absolute;         
+  left: 2px;
+}
+
+#mapas > ul > li > a {  
+  display: block;
+  position: relative;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #ffffff;
+  padding: 12px 20px;
+}
+
+/*  Segundo nivel, primer submenu (vertical) */
+/*********************************************/
+#mapas > ul li > ul{            
+  display: none;                /*Oculto todos los ul por debajo del primer nivel*/
+  width: auto;
+  top: 38px;                    /* Solape submenus*/
+  background: #3f3f3f;
+  z-index: 999;
+  padding: 10px 0;              /* Solape submenus*/
+  background: #858484;
+  width: 150px;
+
+  position: absolute;
+  /*position: relative;         //Determina la posicion del submenu respecto del menu padre      
+  top: -38px;
+  left:150px;
+  */
+}
+#mapas ul li:hover > ul {   /*Muestro el primer submenu, segundo nivel*/
+  display: block;             /* cuando hago hover por el primer menu */
+}
+
+#mapas ul li > ul li {      /* Menu debajo del menu*/
+  display: block;
+  position: relative;
+}
+
+#mapas ul li > ul li a {
+  display: block;
+  position: relative;
+  font: 10pt Arial, Helvetica, sans-serif;
+  color: #ffffff;
+  text-decoration: none;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+  margin: 0;
+  padding: 8px 20px;
+}
+
+/********************************/
+#cssmenu {                    /*La caja del menu*/
+  height: 37px;
+  display: block;
+  border: 1px solid;
+  border-radius: 5px;         /* redondea la caja*/
+  width: auto;
+  border-color: #080808;
+  background: #3c3c3c;
+}
+#cssmenu > ul {
+  margin: 0;
+  padding: 0;
+}
+
+#cssmenu > ul > li.has-sub > a:hover,
+#cssmenu > ul > li.has-sub:hover > a {  /*Fondo del menu clickado si tiene submenu*/
+  background: #9c9c9c;
+  border-color: #3f3f3f;
+}
+
+#cssmenu ul a:hover {         /*Todos los niveles*/
+  color: #c23030;           /*Color de las fuentes cuando hover*/
+}
+
+/*  Primer nivel (horizontal) */
+/******************************/
+#cssmenu > ul > li {
+  list-style: inside none;    /* sin marcador de lista*/
+  float: left;                /* Primer nivel, Product, alineado a izquierda*/
+  display: block;
+  position: relative;         /*solape con submenu*/
+}
+#cssmenu > ul > li > a {  
+  outline: none;
+  display: block;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+  font-weight: 700;
+  font-size: 13px;
+  font-family: Arial, Helvetica, sans-serif;
+  border-right: 1px solid #080808;
+  color: #ffffff;
+  padding: 12px 20px;
+}
+/*  Segundo nivel, primer submenu (vertical) */
+/*********************************************/
+#cssmenu ul li > ul{            
+  display: none;                /*Oculto todos los ul por debajo del primer nivel*/
+  width: auto;
+  top: 38px;                    /* Solape submenus*/
+  background: #3f3f3f;
+  z-index: 999;
+  padding: 10px 0;              /* Solape submenus*/
+  background: #858484;
+  width: 150px;
+
+  position: absolute;
+  /*position: relative;         //Determina la posicion del submenu respecto del menu padre      
+  top: -38px;
+  left:150px;
+  */
+}
+#cssmenu ul li:hover > ul {   /*Muestro el primer submenu, segundo nivel*/
+  display: block;             /* cuando hago hover por el primer menu */
+}
+
+#cssmenu ul li > ul li {      /* Menu debajo del menu*/
+  display: block;
+  position: relative;
+}
+
+#cssmenu ul li > ul li a {
+  display: block;
+  position: relative;
+  font: 10pt Arial, Helvetica, sans-serif;
+  color: #ffffff;
+  text-decoration: none;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+  margin: 0;
+  padding: 8px 20px;
+}
+
+/*  Tercer nivel, segundo submenu (horizontal) */
+/*****************************/
+#cssmenu ul ul li:hover > ul {  
+  position: absolute;           /*Se muestra a la derecha del padre*/
+  left: 100%;
+  top: -10px;
+  border-radius: 5px;
+  background: #cac9c9;
+}
+
+
+
+

@@ -1,4 +1,7 @@
-/* Map height explicitly to define the size of the div containing the map. */
+/********************/
+/* Canvas del  mapa */
+/********************/
+
 #map_canvas { 
     height: 100%;
     float: left;
@@ -7,6 +10,11 @@
     box-sizing: border-box;
     border: 1px solid black;
 }
+
+/********************/
+/* Ventanas de info */
+/********************/
+
 #content-window {
     float: left;
     height: 25%;
@@ -54,20 +62,21 @@ html, body {
     font-size: 12pt;
 }
 
+/********************/
+/* Control de Capas */
+/********************/
 .dropdown {
     position: absolute;
-        top: 12px;
-        left: 130px;
+        top: 5px;
+        left: 10px;
     display: inline-block;
 }
-
-
 
 .dropbtn {
     background-color: #000000;
     color: white;
     padding: 10px;
-    font-size: 12px;
+    font-size: 14px;
     border: none;
     cursor: pointer;
 }
@@ -87,7 +96,7 @@ html, body {
 }
 
 .dropdown-content p {
-    font-size: 12px;
+    font-size: 14px;
     color: black;
     padding: 10px 10px;             /*alto y ancho de cada <a>*/
     text-decoration: none;
@@ -105,4 +114,31 @@ html, body {
     display:inline-block;
     height: 20px;
     float: none;
+    cursor: pointer;
+}
+
+#myDropdown2 {
+    display: none;
+}
+
+.dropdown-content2 {
+    display: none;                  /*Oculta el menu desplegable*/
+    position: relative;
+    left: 160px;
+    top: 110px;
+    background-color: #f1f1f1;
+    min-width: 100px;
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+
+.dropdown-content2 p {
+    font-size: 14px;
+    color: black;
+    padding: 10px 0px;
+    margin: 10px;             /*alto y ancho de cada <a>*/
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
 }

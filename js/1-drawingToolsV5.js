@@ -23,6 +23,8 @@ var migeoJSON;                      //Solo puedo llamar a funciones externas a i
 var ruta;
 var puntos;
 
+var tapaMapa;                       //Rectangulo como la peninsula que tapa el mapa entero
+
 // Gestion de capas //
 const layersOptions = {
 //Iconos e informacion estatica para el menu de control de capas
@@ -34,25 +36,23 @@ const layersOptions = {
 
     iconEditable:       "./img/edit.png",
     iconNotEditable:    "./img/edit.png",
-}
+};
 
 var layersControl = [
 //Informacion de cada capa gestionada, incluyendo su estado.
-    {
-        layerID:        0,
+    {   layerID:        0,
         layerName:      "Mapas",
         flagViewable:   true,
         flagClickable:  false,
-        flagEditable:   false,
+        flagEditable:   true,
     },
-    {
-        layerID:        1,
+    {   layerID:        1,
         layerName:      "Catastro",
         flagViewable:   true,
         flagClickable:  true,
-        flagEditable:   true,
+        flagEditable:   false,
     },
-]
+];
 
 function initMap() {
 //Esta funcion es el callback cuando se carga el API de Google
@@ -63,15 +63,16 @@ function initMap() {
         center: {lat: 37.852, lng: -3.729}, //El Caimbo
         zoom: 16,                           
         mapTypeId: "satellite",	            //"terrain", "roadmap", "hybrid", "false" (no pinta nada pero funciona)
-        zoomControl: false,                 //Desactivo boton del tipo de mapa para tener un mapa mas limpio                  
-        mapTypeControl: true,              //Desactivo boton del zoom para tener un mapa mas limpio
-        scaleControl: true,
-        rotateControl: true,                     
+        zoomControl: false,                 //Desactivo boton del zoom para tener un mapa mas limpio                  
+        mapTypeControl: false,               //El control de tipo de mapa esta embebido en el control de capas
+        scaleControl: false,
+        rotateControl: false,                     
         streetViewControl: false,           //Sin el control de Streetview                
         fullscreenControl: false,           //Sin boton de full screen (es igual con F11)
         disableDoubleClickZoom: true        //Elimino el zoom de dblclick porque uso esto para borrar overlays
     });
 
+    
     //Creo un listener DOM para saer cuando se aprieta el Ctrl (seleccion multiple)
     google.maps.event.addDomListener(document.getElementById("map_canvas"), 'keydown', 
         function (e) {
@@ -84,6 +85,32 @@ function initMap() {
             selectingFlag = false;
         }
     );
+
+    //Defino un rectangulo como la peninsula para tapar el mapa cuando se quiera no visible
+    tapaMapa = new google.maps.Rectangle({          //Rectangulo opaco para ocultar el mapa
+        bounds: {north:44,south:35, east:5, west:-10},  //Rectangulo que cubre toda la peninsula
+        editable: false, draggable: false,              //rectangulo no editale
+        fillColor: "#ffffff", fillOpacity: 1,           //Blanco no traslucido
+        strokeWidth: 0, strokeColor: "#ffffff",
+        zIndex: 0,
+    });
+
+    /*  https://stackoverflow.com/questions/15627325/google-maps-polygon-and-marker-z-index
+    The Maps API uses several layers known as MapPanes in a fixed Z order:
+
+        4: floatPane (infowindow)
+        3: overlayMouseTarget (mouse events)
+        2: markerLayer (marker images)
+        1: overlayLayer (polygons, polylines, ground overlays, tile layer overlays)
+        0: mapPane (lowest pane above the map tiles)
+
+        --------------------------------------------------------
+        var globalZIndex = 1; //Be sure you can access anywhere
+        //... Other instructions for creating map, polygon and any else
+        polygon.setOptions({ zIndex: globalZIndex++ });
+        Notice that markers have a method setZIndex(zIndex:number).
+    
+    */
 
     //Creo una ruta de puntos de ejemplo para trabajar con sus puntos
     puntos = creaPuntos()[0];
@@ -338,10 +365,11 @@ function creaPuntos(){
     // Meto una polilinea que una los puntos del heatmap y asigno a la variable global         
     var ruta = new google.maps.Polyline({
         path: misPuntos,
-        strokeColor: "white",
+        strokeColor: "red",
         strokeOpacity: 0.5,
         draggable: true,
-        map: map
+        map: map,
+        zIndex: 2               //tapaMapa tiene asignado por defecto zIndex: 0 para estar por debajo de todo
     });
 
     //Creo un array de markers con los puntos     
@@ -360,7 +388,7 @@ function creaPuntos(){
                 path: google.maps.SymbolPath.CIRCLE,    //Icono predefinido como circulo
                 scale: 5,                              
                 strokeWeight:6,                         //Con el grosor de linea tan grande parece un circulo
-                strokeColor:'white'                     //Color por defecto azul
+                strokeColor:'pink'                     //Color por defecto azul
             }            
             })
         );
@@ -668,32 +696,45 @@ function miAjaxGet(miUrl, miCallback) {
 //Menu desplegable de las capas //
 //------------------------------//
 
-function capasClick(){
-// When user clicks, toggle between hiding and showing dropdown content
-    document.getElementById("myDropdown").classList.toggle("show");
-}
-
 function toogleViewable (layerID){
 //Cambia de visible a no visible y viceversa el contenido de la capa indicada por su layerID
     console.log("Cambia Viewable del LayerID: " + layerID + " (" + !layersControl[layerID].flagViewable + ")");
-    
-    //Llama al metodo interno de geoXml que muestra u oculta todos los docs
-    layersControl[layerID].flagViewable ? geoXml.hideDocument() : geoXml.showDocument() ;       //Show or hide
+
+    //funcion especifica de cada layer
+    if (layerID==0){
+        //Cubro el mapa con un rectangulo opaco blanco.
+        layersControl[layerID].flagViewable ? tapaMapa.setMap(map) : tapaMapa.setMap(null) ;       //Show or hide
+    }
+    else if(layerID==1){
+        //Llama al metodo interno de geoXml que muestra u oculta todos los docs
+        layersControl[layerID].flagViewable ? geoXml.hideDocument() : geoXml.showDocument() ;       //Show or hide        
+    }
+
+    //Comun a todas las capas
     layersControl[layerID].flagViewable ? src="./img/invisible.png" : src="./img/visible.png" ; //Next icon to be updated
     document.getElementById("#ver" + layerID).src=src;                                          //Cambio el icono
-    
-    layersControl[layerID].flagViewable = !layersControl[layerID].flagViewable;             //toggle status flag
+    layersControl[layerID].flagViewable = !layersControl[layerID].flagViewable;                 //toggle status flag
 }
 
 function toogleClickable (layerID){
 //Cambia de seleccionable a no'selecccionable y viceversa el contenido de la capa indicada por su layerID
     console.log("Cambia Clickable del LayerID: " + layerID + " (" + !layersControl[layerID].flagClickable + ")");
+    //funcion especifica de cada layer
     
-    //Cambia la propiedad "active" de todos los placemarks para des/habilitar los listeners
-    geoXml.activatePlacemarks(!layersControl[layerID].flagClickable);
+    if (layerID==0){
+        //Muestro el submenu con los mapas disponibles
+        //layersControl[layerID].flagClickable? display="none": display="block" 
+        //document.getElementById("myDropdown2").style.display=display;                    //Show or hide los mapas disponibles
+        document.getElementById("myDropdown2").style.display!=="none"? display="none":display="block";document.getElementById("myDropdown2").style.display=display; 
+
+    }
+    else if(layerID==1){
+        //Llama al metodo interno de geoXml que muestra u oculta todos los docs
+        geoXml.activatePlacemarks(!layersControl[layerID].flagClickable);       //Cambia la propiedad active usada por los listerners para inhibirse
+    }
+
     layersControl[layerID].flagClickable ? src="./img/noseleccionar.png" : src="./img/seleccionar.png"; //Next icon to be updated
     document.getElementById("#seleccionar" + layerID).src=src;                                          //Cambio el icono
-
     layersControl[layerID].flagClickable = !layersControl[layerID].flagClickable;                       //toggle status flag
 }
 
@@ -701,12 +742,21 @@ function toogleEditable (layerID){
 //Cambia de editable a noeditable y viceversa el contenido de la capa indicada por su layerID
     console.log("Cambia Editable del LayerID: " + layerID + " (" + !layersControl[layerID].flagEditable + ")");
     
-    //Cambia la propiedad "active" de todos los placemarks para des/habilitar los listeners
-    //Activa o desactiva un flag para inhibir los listener
+    if (layerID==0){    //Mapas
+        //Desactivo/activo la barra de dibujo (lo pongo al valor distinto al que tiene, i.e. toggle)
+        drawingManager.setOptions({
+            drawingMode: null,                        //Desactivo la barra antes de ocultarla y cuando la vuelvo a mostrar
+            drawingControl: !layersControl[layerID].flagEditable,   //Cambio de visible a no visible y viceversa segun el flag
+        });
+    }
+    else if(layerID==1){    //Catastro
+    //Layer1 (catastro): al cambiar el flagEditable de esta layer despues de este if, inhinibe la funcion mostrar RC que importa nuevas capas de Catastro
 
-    //Layer1 (catastro): al cambiar el flagEditable de esta layer, inhinibe la funcion mostrar RC que importa nuevas capas de Catastro
-
-    //-----------------------------------------------------
+    //Muestro info de como incluir nuevas RC en el mapa al activar edicion
+    if (!layersControl[1].flagEditable) alert("Haz Ctrl+Click en el mapa para importar nuevas parcelas");                 
+        
+    }
+    
     layersControl[layerID].flagEditable ? src="./img/noedit.png" : src="./img/edit.png";    //Next icon to be updated
     document.getElementById("#editar" + layerID).src=src;                              //Cambio el icono
 
