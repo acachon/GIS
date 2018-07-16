@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Drawing tools</title>
+        <meta charset="utf-8" name="viewport" content="initial-scale=1.0, user-scalable=no">
+        <link rel="stylesheet" type="text/css" href="./styles/estiloMapas4.css">
+    </head>
+    <body onload="initialize()">
+        <div id="map_canvas"></div>
+        <div id="info-box">Respuesta</div>
+        <div id="sidebar">Respuesta</div>
+        <div id="content-window">Aqui puedo mostrar resultados</div>
+        <div id="content-window2">Aqui muestro botones
+            <br><button id="boton1" onclick="copiarOverlays()">Copiar</button>
+        </div>
+
+        <div class="dropdown">
+            <button onclick='document.getElementById("myDropdown").classList.toggle("show");
+                            document.getElementById("myDropdown2").style.display="none";
+                            document.getElementById("#seleccionar0").src="./img/noseleccionar.png";
+                            layersControl[0].flagClickable=false;'        
+                class="dropbtn">
+                Capas
+            </button>
+            
+            <div id="myDropdown" class="dropdown-content">
+            <p id="#home">Pruebas
+                <span id="#A" style="float:right;color: red">A</span>
+                <span id="#B" style="float:right;color: blue">B</span>
+                <span id="#C" style="float:right;color: green">C</span>
+            </p>
+            <p id=1 >Catastro
+                <span style="float:right"><img id="#ver1" class="imagen" src="./img/visible.png" onclick="toogleViewable(1);"></span>
+                <span style="float:right"><img id="#seleccionar1" class="imagen" src="./img/seleccionar.png" onclick="toogleClickable(1)"></span>
+                <span style="float:right"><img id="#editar1" class="imagen" src="./img/noedit.png" onclick="toogleEditable(1)"></span>
+            </p>
+            <p id=0>Mapas
+                <span style="float:right"><img id="#ver0" class="imagen" src="./img/visible.png" onclick="toogleViewable(0);"></span>
+                <span style="float:right"><img id="#seleccionar0" class="imagen" src="./img/noseleccionar.png" onclick="toogleClickable(0)"></span>
+                <span style="float:right"><img id="#editar0" class="imagen" src="./img/edit.png" onclick="toogleEditable(0)"></span>
+            </p>  
+            </div>
+            <div id="myDropdown2" style="display: none" class="dropdown-content2">
+                <p id="#capa1" onclick='map.setMapTypeId(google.maps.MapTypeId.SATELLITE);console.log("Capa seleccionada: Satellite");'>               
+                    Satellite
+                </p>
+                <p id="#capa2" onclick='map.setMapTypeId(google.maps.MapTypeId.ROADMAP);console.log("Capa seleccionada: Roadmap");'>               
+                    Roadmap
+                </p>
+                <p id="#capa3" onclick='map.setMapTypeId(google.maps.MapTypeId.TERRAIN);console.log("Capa seleccionada: Terrain");'>               
+                    Terrain
+                </p>
+            </div>                                            
+        </div>
+        <!-- TODO: 
+            1. Crear otra tabla desplegable bajo "Mapas" con los mapas disponibles y visible cuando pinche seleccionar
+            2. Poner maptype a null cuanod se pinche no visible
+            3. Desactivar y no mostrar las herramientas cuando desactive editar
+        -->
+        <script language="javascript" src="./js/1-drawingTools-v3.js"></script>
+        <!--Libreria Drawing para los controles de dibujo, la de geometry para contar dentro del poligono--> 
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCRbr23Yvm71EcdyAP2QK8dr_W2rh6usJs&libraries=drawing,geometry&callback=initMap" async defer></script>
+        <script type="text/javascript" src="./js/4-importGeoxml3-v3.js"></script>
+        <script type="text/javascript" src="./js/geoxml3-v3.js"></script>
+    </body>
+</html>
