@@ -1,0 +1,67 @@
+"<?xml version="1.0" encoding="utf-8"?>
+<consulta_dnp xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.catastro.meh.es/">
+  <control>
+    <cudnp>1</cudnp>
+    <cucul>2</cucul>
+  </control>
+  <bico>
+    <bi>
+      <idbi>
+        <cn>RU</cn>
+        <rc>
+          <pc1>23900A0</pc1>
+          <pc2>1000045</pc2>
+          <car>0000</car>
+          <cc1>S</cc1>
+          <cc2>A</cc2>
+        </rc>
+      </idbi>
+      <dt>
+        <loine>
+          <cp>23</cp>
+          <cm>50</cm>
+        </loine>
+        <cmc>900</cmc>
+        <np>JAÉN</np>
+        <nm>JAEN</nm>
+        <locs>
+          <lors>
+            <lorus>
+              <czc>0</czc>
+              <cpp>
+                <cpo>10</cpo>
+                <cpa>45</cpa>
+              </cpp>
+              <npa>CAIMBO</npa>
+              <cpaj>71</cpaj>
+            </lorus>
+          </lors>
+        </locs>
+      </dt>
+      <ldt>Polígono 10 Parcela 45 CAIMBO. JAEN (JAÉN)</ldt>
+      <debi>
+        <sfc>0</sfc>
+      </debi>
+    </bi>
+    <lspr>
+      <spr>
+        <cspr>a</cspr>
+        <dspr>
+          <ccc>OR</ccc>
+          <dcc>OLIVOS REGADÍO</dcc>
+          <ip>03</ip>
+          <ssp>230350</ssp>
+        </dspr>
+      </spr>
+      <spr>
+        <cspr>b</cspr>
+        <dspr>
+          <ccc>E-</ccc>
+          <dcc>PASTOS</dcc>
+          <ip>03</ip>
+          <ssp>7136</ssp>
+        </dspr>
+      </spr>
+    </lspr>
+  </bico>
+</consulta_dnp>"

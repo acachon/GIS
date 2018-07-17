@@ -378,7 +378,7 @@ function creaPuntos(){
         strokeOpacity: 0.5,
         draggable: true,
         map: map,
-        zIndex: 2               //tapaMapa tiene asignado por defecto zIndex: 0 para estar por debajo de todo
+        zIndex: zIndexOffset++,               //tapaMapa tiene asignado por defecto zIndex: 0 para estar por debajo de todo
     });
 
     //Creo un array de markers con los puntos     
@@ -398,7 +398,8 @@ function creaPuntos(){
                 scale: 5,                              
                 strokeWeight:6,                         //Con el grosor de linea tan grande parece un circulo
                 strokeColor:'pink'                     //Color por defecto azul
-            }            
+            },
+            zIndex: zIndexOffset++,            
             })
         );
     }
@@ -430,6 +431,7 @@ function copiarOverlays(){
                 icon: molde.icon,            
                 editable: true,             //Modificable
                 draggable: true,            //Movible
+                zIndex: zIndexOffset++,
             });
 
             //Asigno los listener para hacerlo editable
@@ -445,6 +447,7 @@ function copiarOverlays(){
                 radius: molde.radius,
                 editable: true,             //Modificable
                 draggable: true,            //Movible
+                zIndex: zIndexOffset++,
               });
 
             //Asigno los listener para hacerlo editable
@@ -459,6 +462,7 @@ function copiarOverlays(){
                 paths: molde.getPaths(),
                 editable: true,             //Modificable
                 draggable: true,            //Movible
+                zIndex: zIndexOffset++,
               });
 
             
@@ -486,6 +490,7 @@ function copiarOverlays(){
                   },
                 editable: true,             //Modificable
                 draggable: true,            //Movible
+                zIndex: zIndexOffset++,
               });
 
             //Asigno los listener para hacerlo editable
@@ -500,6 +505,7 @@ function copiarOverlays(){
                 path: molde.getPath(),
                 editable: true,             //Modificable
                 draggable: true,            //Movible
+                zIndex: zIndexOffset++,
                 });
 
             for (var j=0, miPath=[]; j<nuevo.getPath().length;j++){         //Recorro cada vertice de la copia para desplazarlo
@@ -604,7 +610,112 @@ function migeoJSON(){
 //------------------------------//
 //  Servicios Web del Catastro  //
 //------------------------------//
+//-----------------------------------------------------------
+/**
+ * @description Devuelve la referencia catastral de unas coordenadas
+ * @param {*} coordenadas:  coordenadas del punto al que calcular RefCatastral. Es tipo .latLng(), i.e. {lat: 37.8555 ,lng:-3.7555}
+ * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro refCastastral que es un String (14 digitos)
+ * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
+ * 
+ * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?
+ * @requires    function miAjaxGet(miUrl, miCallback) 
+ * @returns     (modficacion) nombre de la parcela tambien se podria devolver si se llama al callback con respuesta.responseXML.all[13].innerHTML     
+ */
+function refCatastralCultivos(refCatastral, miCallback){ 
 
+    //Extraigo los parametros de la Referencia catastral
+    //23900A01000045        (14 minimo de RC)
+    var provincia = refCatastral.substr(0, 2);
+    var municipio = refCatastral.substr(2, 3);
+    var sector = refCatastral.substr(5, 1);     //No se necesita para esta consulta en concreto
+    var poligono = refCatastral.substr(6, 3);
+    var parcela = refCatastral.substr(9, 5);
+
+    //Construyo la direccion y los parametros de la llamada al catastro
+    let url="https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejeroCodigos.asmx/Consulta_DNPPP_Codigos?"
+    //https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejeroCodigos.asmx/Consulta_DNPPP_Codigos?CodigoProvincia=23&CodigoMunicipio=900&CodigoMunicipioINE=900&Poligono=015&Parcela=0005
+    //CodigoProvincia=23&CodigoMunicipio=900&CodigoMunicipioINE=900&Poligono=015&Parcela=0005
+    +"CodigoProvincia=" + provincia  
+    +"&CodigoMunicipio=" + municipio
+    +"&CodigoMunicipioINE=" + municipio
+    +"&Poligono=" + poligono
+    +"&Parcela=" + parcela
+    ;
+    
+    //Llamo al catastro y espero la respuesta para actualizar la variable de salida
+    miAjaxGet(url, function(respuesta){
+        if (respuesta!= -1){
+            //console.log("JSON del catastro recibido " + respuesta.responseText);
+            miCallback(respuesta.responseXML);
+        }
+        else{
+            console.log("Error servidor catastro");
+            miCallback(respuesta);                  //refCatastral devuelta es -1
+        }
+            
+    });
+
+    //Pruebo con otro fetcher
+    //geoXML3.fetchXML(url, function (responseXML) { 
+    //    console.log(responseXML); 
+    //});
+}
+
+function procesaCultivos (responseXML){
+//Busco la informacion necesaria y devuelvo un Objeto de cultivos
+    //Estructura de salida para el listado de cultivos de una parcela
+    if (responseXML==-1) return (null)
+
+    var cultivos = {
+        refCastastral:  "",     //23900A01000045
+        descripcion:    "",     //Polígono 10 Parcela 45, JAEN (JAÉN)
+        nombre:         "",     //Caimbo
+        subparcela:     [{
+            subID:      "",            //a
+            cultivoID:  "",            //OR
+            cultivo:    "",            //Olivos regadio
+            item1:      "",            //03 (ip)
+            item2:      "",            //196566 (ssp)
+        }],
+    }
+ 
+    var subID=      [];            //a
+    var cultivoID=  [];            //OR
+    var cultivo=    [];            //Olivos regadio
+    var item1=      [];            //03 (ip)
+    var item2=      [];            //196566 (ssp)
+
+
+    //Recupero los campos sencillos que son comunes a la parcela
+    cultivos.refCastastral=responseXML.getElementsByTagName("pc1")[0].innerHTML+responseXML.getElementsByTagName("pc2")[0].innerHTML;
+    cultivos.descripcion=responseXML.getElementsByTagName("ldt")[0].innerHTML;
+    cultivos.nombre=responseXML.getElementsByTagName("npa")[0].innerHTML;
+    
+    //Recupero la informacion de cada subparcela y lo meto en el array
+    subID=responseXML.getElementsByTagName("cspr");
+    cultivoID=responseXML.getElementsByTagName("ccc");
+    cultivo=responseXML.getElementsByTagName("dcc");
+    item1=responseXML.getElementsByTagName("ip");
+    item2=responseXML.getElementsByTagName("ssp");
+
+    //Lo meto ahora ordenado como un array de objetos
+    cultivos.subparcela=[]; //Inicializo el array para que el primer psuh vaya al [0]
+    
+    for (var i=0; i<subID.length; i++){     //El primero viene siempre vacio, por eso empiezo en 1
+        cultivos.subparcela.push({
+            subID:      subID[i].innerHTML,       
+            cultivoID:  cultivoID[i].innerHTML,   
+            cultivo:    cultivo[i].innerHTML,     
+            item1:      item1[i].innerHTML,            
+            item2:      item2[i].innerHTML,              
+        });
+    }
+    console.log(cultivos);
+
+    //Devulevo esta estructura con los cultivos
+    return (cultivos);
+}
+//------------------------------------------------------------
 /**
  * @description Devuelve las coordenadas del centroide de una referencia catatral dada por su RC
  * @param {*} refCatastral:  referencia catastral de la que obtener las coordenadas de su centroide. Es tipo string de 14 caracteres
