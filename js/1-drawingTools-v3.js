@@ -762,12 +762,16 @@ function importarXmlRefCastastral(refCatastral){
             afterParse: useTheData
         });
     }
-    //Importo la capa del catastro, la formateo y la muestor en el mapa
+    //1. Importo la capa del catastro, la formateo y la muestor en el mapa
     geoXml.parse(
         "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
         + refCatastral 
         +"&del=23&mun=900&tipo=3d"
-    ); 
+    );
+    //2. Añado la informacion de los cultivos
+    cultivosRefCatastral(refCatastral, function(cultivos){
+        geoXml.docs[geoXml.docs.length-1].cultivos=cultivos;
+    }); 
 }
 
 /**

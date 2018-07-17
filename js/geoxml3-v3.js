@@ -1,9 +1,8 @@
 /**
  * Mis notas sobre este componente
  * 
- * 1. supressInfoWindow en las parseOptions hace que al cargar no se muestren ventanas. Se puede usar para el boton not-clickable?
- * 2. parseOnly es un atributo que indica que solo se trae el fichero?
- * 3. 
+ * 1. supressInfoWindow en las parseOptions hace que al cargar no se muestren ventanas.
+ * 
  */
 
 console.log("Arranca el script geoxml3");
@@ -186,7 +185,7 @@ geoXML3.parser = function (options) {
                 internals.docSet.push(thisDoc);
             }
 
-            //Iniciliazo el docuemnto con los datos de la url requerida
+            //Iniciliazo el documento con los datos de la url requerida
             thisDoc.url = urls[i];
             thisDoc.internals = internals;
             var url = thisDoc.url;
@@ -1279,8 +1278,8 @@ geoXML3.parser = function (options) {
         //createPolygon: createPolygon
     };
 };
-
 // End of KML Parser
+
 //--------------------------------------------------------------//
 
 // Extraxct Opacity from color atributes in kML when it exits (1 if not)
@@ -1324,8 +1323,6 @@ geoXML3.combineOptions = function (overrides, defaults) {
 };
 
 
-
-// parse text to XML doc
 /**
  * Parses the given XML string and returns the parsed document in a
  * DOM data structure. This function will return an empty DOM node if
@@ -1364,6 +1361,7 @@ geoXML3.isParseError = function (parsedDocument) {
     return parsedDocument.getElementsByTagNameNS(parsererrorNS, 'parsererror').length > 0;
 };
 
+//AjaxGet asincrono para traer un fichero dado por su url (similar a miAjaxGet
 geoXML3.fetchXML = function (url, callback) {
     function timeoutHandler() {
         geoXML3.log('XHR timeout');

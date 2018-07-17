@@ -69,12 +69,22 @@
             );
         */
         ///*
+        
         //Carga multiple de KML simulateamente
-        geoXml.parse([
+        miUrls=[
             "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A015000050000SK&del=23&mun=900&tipo=3d",
             "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A01000045&del=23&mun=900&tipo=3d",
-            ]);
-        //*/
+            ];
+        geoXml.parse(miUrls);
+        
+        //Añado la informacion de los cultivos
+        cultivosRefCatastral("23900A01500005", function(cultivos){
+            geoXml.docs[geoXml.docs.length-2].cultivos=cultivos;
+        });
+        cultivosRefCatastral("23900A01000045", function(cultivos){
+            geoXml.docs[geoXml.docs.length-1].cultivos=cultivos;
+        });
+        
     };
 
     function useTheData(docs) {
@@ -132,8 +142,6 @@
         }
     }
 
-
-
     function kmlClick(docID, polyID) {
     //Hace zoom y muestra la subparcela seleccionada como si la clickase
         if (geoXml.docs[docID].gpolygons[polyID].getMap()) {
@@ -153,9 +161,14 @@
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
-        cultivosRefCatastral("23900A01500005", console.log);
-        //cultivosRefCatastral("23900A01000045", console.log);
-        
+        //cultivosRefCatastral("23900A01500005", console.log);
+        /*
+        //Añado la informacion de los cultivos
+        cultivosRefCatastral("23900A01500005", function(cultivos){
+            geoXml.docs[geoXml.docs.length-1].cultivos=cultivos;
+        });
+        */
+                
 
 
 //--------------------------------------------------------------------------
