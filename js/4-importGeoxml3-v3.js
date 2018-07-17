@@ -153,8 +153,8 @@
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
-        refCatastralCultivos("23900A01500005", procesaCultivos);
-        refCatastralCultivos("23900A01000045", procesaCultivos);
+        cultivosRefCatastral("23900A01500005", console.log);
+        //cultivosRefCatastral("23900A01000045", console.log);
         
 
 

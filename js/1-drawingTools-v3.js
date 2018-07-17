@@ -225,7 +225,7 @@ function initMap() {
         function (e) {
             if (selectingFlag && drawingManager.drawingMode==null){     //Si esta apretado el [CTRL] y no esta editando formas (modo mano)
                 selectingFlag=false;        //Desmarco la tecla [CTRL]
-                mostrarRC(e.latLng);        //Soliciito RC al catastro y lo muestro en Visor y ventana lateral
+                mostrarRefCatastral(e.latLng);        //Soliciito RC al catastro y lo muestro en Visor y ventana lateral
             }
         }
     );
@@ -532,48 +532,6 @@ function copiarOverlays(){
 
 }
 
-function mostrarRC(miLatLng){
-//TODO: ejecuta una accion con las coordenadas pasadas: pintar en ventana resultados y la RefCatastral *consulta catastro) en el visor
-    //1. Muestra las coordenadas en la ventana lateral
-    document.getElementById("content-window").innerText +=  "\nLat: " + Math.round(miLatLng.lat()*1000)/1000
-                                                            +"\nLng: " + Math.round(miLatLng.lng()*1000)/1000;
-    //Solicito la RC del Catastro para esas coordenadas y la muestro en el visor
-    refCatastralCoordenadas(miLatLng, function(respuesta){
-        //2. Muestro el RC en el visor inferior 
-        document.getElementById("info-box").innerText=respuesta;
-    
-    //Importo la referencia catastral del servicio web de Catastro y lo incluyo en el mapa y geoXml
-    importarRC(respuesta); 
-
-    });
-}
-
-function importarRC(refCatastral){
-//Importa del catastro la referencia catastral que se le solicita
-//Llama a useTheData como callback para actuar tras importar la capa XML
-
-    //Si la capa catastro (1) no es editable (false) no permito incluir nuevas capas y trae esta del catastro
-    if (!layersControl[1].flagEditable) {
-        console.log("importarRC: la capa catastro esta no editable");
-        return;
-    }
-    //------------------------------------------------ 
-    
-    if (!geoXml){                           //Si no existe ya alguna capa XML importada del catastro
-        geoXml = new geoXML3.parser({
-            map: map,
-            singleInfoWindow: true,
-            afterParse: useTheData
-        });
-    }
-    //Importo la capa del catastro, la formateo y la muestor en el mapa
-    geoXml.parse(
-        "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
-        + refCatastral 
-        +"&del=23&mun=900&tipo=3d"
-    ); 
-}
-
 // Funcion que se usa solo a modo de ejemplo de otra forma de importar datos //
 //---------------------------------------------------------------------------//
 function migeoJSON(){
@@ -610,28 +568,133 @@ function migeoJSON(){
 //------------------------------//
 //  Servicios Web del Catastro  //
 //------------------------------//
-//-----------------------------------------------------------
-/**
- * @description Devuelve la referencia catastral de unas coordenadas (Consulta_DNPPP_Codigos)
- * @param {*} refCatastral: RefCatastral de la parcela a consultar sus subparcelas y cultivos. Es tipo string 14 digitos
- * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro respuestaXML que es un a procesar con procesaCultivos(XML)
- * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
- * 
- * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?
- * @requires    function miAjaxGet(miUrl, miCallback) 
- * @returns     (modficacion) nombre de la parcela tambien se podria devolver si se llama al callback con respuesta.responseXML.all[13].innerHTML     
- */
-function refCatastralCultivos(refCatastral, miCallback){ 
 
-    //Extraigo los parametros de la Referencia catastral
-    //23900A01000045        (14 minimo de RC)
+/**
+ * @description la referencia catastral de unas coordenadas (Consulta_DNPPP_Codigos)
+ * @param {*} refCatastral: RefCatastral de la parcela a consultar sus subparcelas y cultivos. Es tipo string 14 digitos
+ * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el objeto "cultivos{}" procesado ya con procesarCultivos(responseXML)
+ * @example     cultivosRefCatastral("23900A01500005", function(respuesta){console.log("Los cultivos: "+ respuesta)});
+ * 
+ * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejeroCodigos.asmx/Consulta_DNPPP_Codigos?
+ * @requires    function miAjaxGet(miUrl, miCallback),  
+ * @returns     Devuelve un objeto con los cultivos de cada recinto de una parcela     
+ */
+function cultivosRefCatastral(refCatastral, miCallback){ 
+    //0. Declaro la funcion interna que procesa el XML recibido de Catastro
+    function procesarXmlCultivos (responseXML){
+    //Busco la informacion necesaria en el XML y devuelvo un Objeto de cultivos solo con esto
+
+        //Si el XML recibido es -1 es que hubo un error al importar, no hago nada!!
+        if (responseXML==-1) return (null)
+
+        //0. Estructura de salida para el listado de cultivos de una parcela    
+        var cultivos = {
+            refCastastral:  "",     //23900A01000045
+            descripcion:    "",     //Polígono 10 Parcela 45, JAEN (JAÉN)
+            nombre:         "",     //Caimbo
+            subparcelas:     [{
+                subID:      "",            //a
+                cultivoID:  "",            //OR
+                cultivo:    "",            //Olivos regadio
+                intensidad: "",            //03 (ip, intensidad productiva)
+                superficie: "",            //196566 (ssp, metros cuadrados)
+            }],
+            agregado:       [{      //Atributo calculado agregando las subparcelas (recintos)
+                cultivoID:  "",         //codigo tipo cultivo
+                cultivo:    "",         //tipo de cultivo
+                superficie: "",         //Agregado de superficies para ese cultivo
+                recintos:   "",         //contador numero de recintos con ese cultivo
+            }],
+            superficie:     "",     //Atributo calculado como la suma de las superifices de los recintos o subparcelas
+        }
+        //Varibales internas para carga masiva de datos de subparcelas
+        var subID=      [];            //a
+        var cultivoID=  [];            //OR
+        var cultivo=    [];            //Olivos regadio
+        var intensidad= [];            //03 (ip, intesidad productiva)
+        var superficie= [];            //196566 (ssp)
+    
+    
+        //1. Recupero los campos sencillos que son comunes a la parcela
+        cultivos.refCastastral  =responseXML.getElementsByTagName("pc1")[0].innerHTML+responseXML.getElementsByTagName("pc2")[0].innerHTML;
+        cultivos.descripcion    =responseXML.getElementsByTagName("ldt")[0].innerHTML;
+        cultivos.nombre         =responseXML.getElementsByTagName("npa")[0].innerHTML;
+        
+        //2. Recupero la informacion de cada subparcela y lo meto en el array
+        subID       =responseXML.getElementsByTagName("cspr");
+        cultivoID   =responseXML.getElementsByTagName("ccc");
+        cultivo     =responseXML.getElementsByTagName("dcc");
+        intensidad  =responseXML.getElementsByTagName("ip");
+        superficie  =responseXML.getElementsByTagName("ssp");
+    
+        //3. Lo meto ahora ordenado como un array de objetos
+        cultivos.subparcelas=[]; //Inicializo el array para que el primer psuh vaya al [0]
+        
+        for (var i=0; i<subID.length; i++){     //El primero viene siempre vacio, por eso empiezo en 1
+            cultivos.subparcelas.push({
+                subID:      subID[i].innerHTML,       
+                cultivoID:  cultivoID[i].innerHTML,   
+                cultivo:    cultivo[i].innerHTML,     
+                intensidad: intensidad[i].innerHTML,            
+                superficie: superficie[i].innerHTML,              
+            });
+        }
+
+        //4. Calculo un agregado por tipo de cultivo a partir de las subparcelas (recintos)
+        /*
+        var agregadoCultivos = [{
+            cultivoID,          //codigo tipo cultivo
+            cultivo,            //tipo de cultivo
+            superficie,         //Agregado de superficies para ese cultivo
+            recintos,           //contador numero de recintos con ese cultivo
+        }];
+        */
+        var agregadoCultivos=[];    
+        cultivos.superficie = 0;    //Lo inicializo como numero
+
+        cultivos.subparcelas.forEach(subparcela => {    //Recorro todas las subparcelas
+            //Miro si el tipo de cultivo ya existe
+            flagNuevo=true;
+            agregadoCultivos.forEach(agregado => {      
+                if (agregado.cultivoID==subparcela.cultivoID){  //Si ya existe, agrego sobre el
+                    agregado.superficie += parseFloat(subparcela.superficie);
+                    agregado.recintos++;
+                    
+                    flagNuevo=false;
+                    //break; //Salgo del agregadoCultivos.forEach ToDo: No me deja meter un break aqui, hay que transformarlo en un for normal
+                }
+            });
+
+            if (flagNuevo){ //Si ninguno de los agregados existentes coincide con este cultivo
+                //Creo un nuevo agregado al final del array
+                agregadoCultivos[agregadoCultivos.length] = {
+                    cultivoID:  subparcela.cultivoID,            
+                    cultivo:    subparcela.cultivo,            
+                    superficie: parseFloat(subparcela.superficie),         
+                    recintos:   1,           
+                }
+            };
+
+            //Acumulo la superficie total
+            cultivos.superficie += parseFloat(subparcela.superficie);
+        });        
+
+        //Incoporo el agregado total calculado al objeto cultivos
+        cultivos.agregado = agregadoCultivos;
+
+        //5. Devuelvo esta estructura con los cultivos de la parcela
+            //console.log(cultivos);
+        return (cultivos);
+    };
+
+    //1. Extraigo los parametros de la Referencia catastral. Ejemplo:23900A01000045 (14 minimo de RC)
     var provincia = refCatastral.substr(0, 2);
     var municipio = refCatastral.substr(2, 3);
     var sector = refCatastral.substr(5, 1);     //No se necesita para esta consulta en concreto
     var poligono = refCatastral.substr(6, 3);
     var parcela = refCatastral.substr(9, 5);
 
-    //Construyo la direccion y los parametros de la llamada al catastro
+    //2. Construyo la direccion y los parametros de la llamada al catastro
     let url="https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejeroCodigos.asmx/Consulta_DNPPP_Codigos?"
     //https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejeroCodigos.asmx/Consulta_DNPPP_Codigos?CodigoProvincia=23&CodigoMunicipio=900&CodigoMunicipioINE=900&Poligono=015&Parcela=0005
     //CodigoProvincia=23&CodigoMunicipio=900&CodigoMunicipioINE=900&Poligono=015&Parcela=0005
@@ -642,11 +705,94 @@ function refCatastralCultivos(refCatastral, miCallback){
     +"&Parcela=" + parcela
     ;
     
+    //3. Llamo al catastro y espero la respuesta para actualizar la variable de salida
+    miAjaxGet(url, function(respuesta){
+        if (respuesta!= -1){
+                console.log("JSON del catastro recibido OK");
+            //4. Proceso el XML recibido para generar un objeto tipo Cultivos{}
+            var misCultivos; 
+            misCultivos = procesarXmlCultivos(respuesta.responseXML);
+
+            //5. Devuelvo el objeto Cultivos
+            miCallback(misCultivos);
+        }
+        else{ //respuesta es -1
+                console.log("Error servidor catastro");
+            miCallback(respuesta);                 
+        }   
+    });
+
+    //3b. Pruebo con otro funcoin equivalente a miAjaxGet que tiene el propio geoxml3
+    //geoXML3.fetchXML(url, function (responseXML) { 
+    //    console.log(responseXML); 
+    //});
+}
+
+function mostrarRefCatastral(miLatLng){
+//Muestra en la ventana lateral las coordenadas, en el visor la RefCat devuelta por catastro
+//Llama a la funcion para consultar del catastro la Ref a partir de las coordenandas y visualizarlas
+    //1. Muestra las coordenadas en la ventana lateral
+    document.getElementById("content-window").innerText +=  "\nLat: " + Math.round(miLatLng.lat()*1000)/1000
+                                                            +"\nLng: " + Math.round(miLatLng.lng()*1000)/1000;
+    //Solicito la RC del Catastro para esas coordenadas y la muestro en el visor
+    refCatastralCoordenadas(miLatLng, function(refCastastral){
+        //2. Muestro el RC en el visor inferior 
+        document.getElementById("info-box").innerText=refCastastral;
+    
+        //Importo la capa XML de la referencia catastral del servicio web de Catastro y lo incluyo en el mapa y geoXml
+        importarXmlRefCastastral(refCastastral); 
+    });
+}
+    
+function importarXmlRefCastastral(refCatastral){
+//Importa del catastro la capa XML de la referencia catastral que se le solicita
+//Llama a useTheData como callback para actuar tras importar la capa XML
+
+    //Si la capa catastro (1) no es editable (false) no permito incluir nuevas capas y trae esta del catastro
+    if (!layersControl[1].flagEditable) {
+        console.log("importarXmlRefCastastral: la capa catastro esta no editable");
+        return;
+    }
+    //------------------------------------------------ 
+    
+    if (!geoXml){                           //Si no existe ya alguna capa XML importada del catastro
+        geoXml = new geoXML3.parser({
+            map: map,
+            singleInfoWindow: true,
+            afterParse: useTheData
+        });
+    }
+    //Importo la capa del catastro, la formateo y la muestor en el mapa
+    geoXml.parse(
+        "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat="
+        + refCatastral 
+        +"&del=23&mun=900&tipo=3d"
+    ); 
+}
+
+/**
+ * @description Devuelve la referencia catastral de unas coordenadas
+ * @param {*} coordenadas:  coordenadas del punto al que calcular RefCatastral. Es tipo .latLng(), i.e. {lat: 37.8555 ,lng:-3.7555}
+ * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro refCastastral que es un String (14 digitos)
+ * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
+ * 
+ * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?
+ * @requires    function miAjaxGet(miUrl, miCallback) 
+ * @returns     (modficacion) nombre de la parcela tambien se podria devolver si se llama al callback con respuesta.responseXML.all[13].innerHTML     
+ */
+function refCatastralCoordenadas(coordenadas, miCallback){ 
+    
+    //Construyo la direccion y los parametros de la llamada al catastro
+    let url="https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?"
+    +"SRS=EPSG:" + "4326"                     //Sistemas de coordenadas usado por googleMaps
+    +"&Coordenada_X=" + coordenadas.lng()  
+    +"&Coordenada_Y=" + coordenadas.lat();
+    
     //Llamo al catastro y espero la respuesta para actualizar la variable de salida
     miAjaxGet(url, function(respuesta){
         if (respuesta!= -1){
-            //console.log("JSON del catastro recibido " + respuesta.responseText);
-            miCallback(respuesta.responseXML);
+            console.log("JSON del catastro recibido " + respuesta.responseXML.all);
+            miCallback(respuesta.responseXML.all[7].innerHTML+respuesta.responseXML.all[8].innerHTML);
         }
         else{
             console.log("Error servidor catastro");
@@ -654,71 +800,12 @@ function refCatastralCultivos(refCatastral, miCallback){
         }
             
     });
-
-    //Pruebo con otro fetcher
-    //geoXML3.fetchXML(url, function (responseXML) { 
-    //    console.log(responseXML); 
-    //});
 }
-//ToDo: integrar esto en refCatastralCultivos para devolver directamente un Objeto tipo cultivos={}
-function procesaCultivos (responseXML){
-//Busco la informacion necesaria y devuelvo un Objeto de cultivos
-    //Estructura de salida para el listado de cultivos de una parcela
-    if (responseXML==-1) return (null)
-
-    var cultivos = {
-        refCastastral:  "",     //23900A01000045
-        descripcion:    "",     //Polígono 10 Parcela 45, JAEN (JAÉN)
-        nombre:         "",     //Caimbo
-        subparcela:     [{
-            subID:      "",            //a
-            cultivoID:  "",            //OR
-            cultivo:    "",            //Olivos regadio
-            intensidad: "",            //03 (ip, intensidad productiva)
-            superficie: "",            //196566 (ssp, metros cuadrados)
-        }],
-    }
- 
-    var subID=      [];            //a
-    var cultivoID=  [];            //OR
-    var cultivo=    [];            //Olivos regadio
-    var intensidad= [];            //03 (ip, intesidad productiva)
-    var superficie=      [];            //196566 (ssp)
 
 
-    //Recupero los campos sencillos que son comunes a la parcela
-    cultivos.refCastastral=responseXML.getElementsByTagName("pc1")[0].innerHTML+responseXML.getElementsByTagName("pc2")[0].innerHTML;
-    cultivos.descripcion=responseXML.getElementsByTagName("ldt")[0].innerHTML;
-    cultivos.nombre=responseXML.getElementsByTagName("npa")[0].innerHTML;
-    
-    //Recupero la informacion de cada subparcela y lo meto en el array
-    subID=responseXML.getElementsByTagName("cspr");
-    cultivoID=responseXML.getElementsByTagName("ccc");
-    cultivo=responseXML.getElementsByTagName("dcc");
-    intensidad=responseXML.getElementsByTagName("ip");
-    superficie=responseXML.getElementsByTagName("ssp");
-
-    //Lo meto ahora ordenado como un array de objetos
-    cultivos.subparcela=[]; //Inicializo el array para que el primer psuh vaya al [0]
-    
-    for (var i=0; i<subID.length; i++){     //El primero viene siempre vacio, por eso empiezo en 1
-        cultivos.subparcela.push({
-            subID:      subID[i].innerHTML,       
-            cultivoID:  cultivoID[i].innerHTML,   
-            cultivo:    cultivo[i].innerHTML,     
-            intensidad: intensidad[i].innerHTML,            
-            superficie:      superficie[i].innerHTML,              
-        });
-    }
-    console.log(cultivos);
-
-    //Devulevo esta estructura con los cultivos
-    return (cultivos);
-}
-//------------------------------------------------------------
-
-/**
+/** No se usa aun en esta aplicacion
  * @description Devuelve las coordenadas del centroide de una referencia catatral dada por su RC
+ * No se usa de momento pero en un futuro puede ser util para centrar el mapa en una RefCat
  * @param {*} refCatastral:  referencia catastral de la que obtener las coordenadas de su centroide. Es tipo string de 14 caracteres
  * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro coordendas que es un .latLng()
  * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
@@ -746,38 +833,6 @@ function coordenadasRefCatastral(refCatastral, miCallback){
             console.log("Error servidor catastro");
             miCallback(respuesta);                  //refCatastral devuelta es -1
         }    
-    });
-}
-
-/**
- * @description Devuelve la referencia catastral de unas coordenadas
- * @param {*} coordenadas:  coordenadas del punto al que calcular RefCatastral. Es tipo .latLng(), i.e. {lat: 37.8555 ,lng:-3.7555}
- * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro refCastastral que es un String (14 digitos)
- * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
- * 
- * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?
- * @requires    function miAjaxGet(miUrl, miCallback) 
- * @returns     (modficacion) nombre de la parcela tambien se podria devolver si se llama al callback con respuesta.responseXML.all[13].innerHTML     
- */
-function refCatastralCoordenadas(coordenadas, miCallback){ 
-
-    //Construyo la direccion y los parametros de la llamada al catastro
-    let url="https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?"
-    +"SRS=EPSG:" + "4326"                     //Sistemas de coordenadas usado por googleMaps
-    +"&Coordenada_X=" + coordenadas.lng()  
-    +"&Coordenada_Y=" + coordenadas.lat();
-    
-    //Llamo al catastro y espero la respuesta para actualizar la variable de salida
-    miAjaxGet(url, function(respuesta){
-        if (respuesta!= -1){
-            console.log("JSON del catastro recibido " + respuesta.responseXML.all);
-            miCallback(respuesta.responseXML.all[7].innerHTML+respuesta.responseXML.all[8].innerHTML);
-        }
-        else{
-            console.log("Error servidor catastro");
-            miCallback(respuesta);                  //refCatastral devuelta es -1
-        }
-            
     });
 }
 
