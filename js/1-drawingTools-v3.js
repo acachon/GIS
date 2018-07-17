@@ -612,9 +612,9 @@ function migeoJSON(){
 //------------------------------//
 //-----------------------------------------------------------
 /**
- * @description Devuelve la referencia catastral de unas coordenadas
- * @param {*} coordenadas:  coordenadas del punto al que calcular RefCatastral. Es tipo .latLng(), i.e. {lat: 37.8555 ,lng:-3.7555}
- * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro refCastastral que es un String (14 digitos)
+ * @description Devuelve la referencia catastral de unas coordenadas (Consulta_DNPPP_Codigos)
+ * @param {*} refCatastral: RefCatastral de la parcela a consultar sus subparcelas y cultivos. Es tipo string 14 digitos
+ * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro respuestaXML que es un a procesar con procesaCultivos(XML)
  * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
  * 
  * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?
@@ -660,7 +660,7 @@ function refCatastralCultivos(refCatastral, miCallback){
     //    console.log(responseXML); 
     //});
 }
-
+//ToDo: integrar esto en refCatastralCultivos para devolver directamente un Objeto tipo cultivos={}
 function procesaCultivos (responseXML){
 //Busco la informacion necesaria y devuelvo un Objeto de cultivos
     //Estructura de salida para el listado de cultivos de una parcela
@@ -674,16 +674,16 @@ function procesaCultivos (responseXML){
             subID:      "",            //a
             cultivoID:  "",            //OR
             cultivo:    "",            //Olivos regadio
-            item1:      "",            //03 (ip)
-            item2:      "",            //196566 (ssp)
+            intensidad: "",            //03 (ip, intensidad productiva)
+            superficie: "",            //196566 (ssp, metros cuadrados)
         }],
     }
  
     var subID=      [];            //a
     var cultivoID=  [];            //OR
     var cultivo=    [];            //Olivos regadio
-    var item1=      [];            //03 (ip)
-    var item2=      [];            //196566 (ssp)
+    var intensidad= [];            //03 (ip, intesidad productiva)
+    var superficie=      [];            //196566 (ssp)
 
 
     //Recupero los campos sencillos que son comunes a la parcela
@@ -695,8 +695,8 @@ function procesaCultivos (responseXML){
     subID=responseXML.getElementsByTagName("cspr");
     cultivoID=responseXML.getElementsByTagName("ccc");
     cultivo=responseXML.getElementsByTagName("dcc");
-    item1=responseXML.getElementsByTagName("ip");
-    item2=responseXML.getElementsByTagName("ssp");
+    intensidad=responseXML.getElementsByTagName("ip");
+    superficie=responseXML.getElementsByTagName("ssp");
 
     //Lo meto ahora ordenado como un array de objetos
     cultivos.subparcela=[]; //Inicializo el array para que el primer psuh vaya al [0]
@@ -706,8 +706,8 @@ function procesaCultivos (responseXML){
             subID:      subID[i].innerHTML,       
             cultivoID:  cultivoID[i].innerHTML,   
             cultivo:    cultivo[i].innerHTML,     
-            item1:      item1[i].innerHTML,            
-            item2:      item2[i].innerHTML,              
+            intensidad: intensidad[i].innerHTML,            
+            superficie:      superficie[i].innerHTML,              
         });
     }
     console.log(cultivos);
@@ -716,6 +716,7 @@ function procesaCultivos (responseXML){
     return (cultivos);
 }
 //------------------------------------------------------------
+
 /**
  * @description Devuelve las coordenadas del centroide de una referencia catatral dada por su RC
  * @param {*} refCatastral:  referencia catastral de la que obtener las coordenadas de su centroide. Es tipo string de 14 caracteres
