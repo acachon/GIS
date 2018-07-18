@@ -9,9 +9,14 @@
         <div id="map_canvas"></div>
         <div id="info-box">Respuesta</div>
         <div id="sidebar">Respuesta</div>
-        <div id="content-window">Aqui puedo mostrar resultados</div>
-        <div id="content-window2">Aqui muestro botones
+        <div id="content-window">
+            <pre id="file-content">Contenido archivo aqui</pre>
+        </div>
+        <div id="content-window2">Botones
             <br><button id="boton1" onclick="copiarOverlays()">Copiar</button>
+
+            <input type="file" id="file-input" onchange="importarFichero(this)" style="display: none;"/>
+            <input type="button" value="Importar fichero" onclick="document.getElementById('file-input').click();" />
         </div>
 
         <div class="dropdown">

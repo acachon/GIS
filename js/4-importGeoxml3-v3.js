@@ -15,6 +15,7 @@
 
     var geoXml = null;      //Objeto con toda la informaicon importada de las capas del catastro
     var zIndexOffset=10;    //Todos los objetos se indexan desde aqui. Reservo desde el zIndex=0 para mis usos (ej tapaMapa tiene zIndex=0)
+    var importedFile =null; //Variable donde importo el contenido del fichero seleccionado
 
     //Defino los colores de las subparcelas de manera estatica y me salto lo que viene definido en al capa KML
     const normalStyle = {
@@ -77,18 +78,24 @@
             ];
         geoXml.parse(miUrls);
         
-        //Añado la informacion de los cultivos
-        cultivosRefCatastral("23900A01500005", function(cultivos){
-            geoXml.docs[geoXml.docs.length-2].cultivos=cultivos;
-        });
-        cultivosRefCatastral("23900A01000045", function(cultivos){
-            geoXml.docs[geoXml.docs.length-1].cultivos=cultivos;
-        });
-        
     };
 
     function useTheData(docs) {
     //Crea un listado (html a incrustar) dinamico en la ventana lateral con las parcelas importadas
+
+        //Consulto en catastro los cultivos de los docs y lo actualizo para los nuevos
+        //Reviso todos los docs para ver si tienen cultivos o no. En caso negativo los calculo y los meto
+        geoXml.docs.forEach(doc => {
+            if (!doc.cultivos){    //si no tiene aun atributo de cultivos
+                //Calculo la refCat de ese doc
+                var refcat=doc.url.substr(doc.url.indexOf("refcat=")+7,14); //Cojo las 14 posiciones despues de "refcat="
+
+                //Consulto los cultivos al catastro y los asigno al doc como callback
+                cultivosRefCatastral(refcat, function(cultivos){
+                    doc.cultivos=cultivos;
+                });
+            }
+        });
     
         //Construyo el codigo html de la ventana lateral con la info de la parcela
         var sidebarHtml = '<table><tr><td><a href="javascript:showAllPoly();">Show All</a></td></tr>';
@@ -161,16 +168,20 @@
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
-        //cultivosRefCatastral("23900A01500005", console.log);
-        /*
-        //Añado la informacion de los cultivos
-        cultivosRefCatastral("23900A01500005", function(cultivos){
-            geoXml.docs[geoXml.docs.length-1].cultivos=cultivos;
+ 
+       
+        //Pruebo a cargar el fichero del SIGPAC convertido
+        //var data = map.data.loadGeoJson(geoJsonFile);
+        //map.data.addGeoJson(data);
+
+        map.data.addGeoJson(importedFile);
+        map.data.setStyle({
+            visible: true,
+            //strokeWeight: 5,
+            strokeColor: "white",
+            zIndex: zIndexOffset,                              //Asi tapaMapa esta por debajo
         });
-        */
-                
-
-
+        zIndexOffset++;
 //--------------------------------------------------------------------------
     }
 
@@ -195,6 +206,24 @@
     //docID es el indice del documento, de la parcela KML.
     //polyID es el indice del array de poligonos dentro de docs[docID]
         geoXml.docs[docID].gpolygons[polyID].setOptions(geoXml.docs[docID].gpolygons[polyID].normalStyle);
+    }
+
+    function importarFichero(e) {
+    //Lee un fichero de texto seleccionado por el usuario       
+    //Importo el contenido del fichero de texto en la variable gloabl importedFile
+    //ToDo: gestionar carga multiple de ficheros
+        if (!e.files[0]) return                 //Si no hay achivo m salgo sin hacer nada
+    
+        //Declaro el callback de la lectura del fichero y lo cargo en importFile
+        var reader = new FileReader();
+        document.getElementById('file-content').textContent = "Fichero: "+e.files[0].name;
+        reader.onload = function (e) {
+            importedFile= JSON.parse(e.target.result);          
+            document.getElementById('file-content').textContent += "\nFichero importado";
+            console.log("Fichero importado");
+        };
+        //Lanzo la lectura del fichero (asincrona)
+        reader.readAsText(e.files[0]);                //Lee xml, json
     }
 
     //--------------------------------------------------------------//
