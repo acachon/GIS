@@ -13,9 +13,11 @@
     //Variables globales    //
     //----------------------//
 
-    var geoXml = null;      //Objeto con toda la informaicon importada de las capas del catastro
-    var zIndexOffset=10;    //Todos los objetos se indexan desde aqui. Reservo desde el zIndex=0 para mis usos (ej tapaMapa tiene zIndex=0)
-    var importedFile =null; //Variable donde importo el contenido del fichero seleccionado
+    var geoXml = null;                      //Objeto con toda la informaicon importada de las capas del catastro
+    var zIndexOffset=10;                    //Todos los objetos se indexan desde aqui. Reservo desde el zIndex=0 para mis usos (ej tapaMapa tiene zIndex=0)
+    var importedFile =null;                 //Variable donde importo el contenido del fichero seleccionado
+    var miGeoJson = new Object;             //Declaro un objeto tipo geoJson vacio, sin features 
+    miGeoJson.type = "FeatureCollection";   //Tengo que incluir este atributo para que sea un geoJson y lo coja googleMaps en addGeoJson()
 
     //Defino los colores de las subparcelas de manera estatica y me salto lo que viene definido en al capa KML
     const normalStyle = {
@@ -168,20 +170,66 @@
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
- 
-       
-        //Pruebo a cargar el fichero del SIGPAC convertido
-        //var data = map.data.loadGeoJson(geoJsonFile);
-        //map.data.addGeoJson(data);
 
-        map.data.addGeoJson(importedFile);
-        map.data.setStyle({
-            visible: true,
-            //strokeWeight: 5,
-            strokeColor: "white",
-            zIndex: zIndexOffset,                              //Asi tapaMapa esta por debajo
+        //Selecciono los recintos, features, a filtrar
+        var poligono = 10;
+        var parcela = 43;
+        var filtrado = importedFile.features.filter(elem => 
+            elem.properties.CD_POL==poligono && elem.properties.CD_PARCELA==parcela 
+        );
+        miGeoJson.features=filtrado;
+
+        //Importo el fichero filtrado al mapa para visualizarlo
+        var added = map.data.addGeoJson(miGeoJson);
+
+        //Aplicar un estilo en funcion de los valores de las propiedades
+        const colorByUso={
+            TA: "#ffffe3",
+            OV: "green",
+            IM: "grey",
+            PR: "brown"
+        };
+        //Recorro cada feature y le asigno un fillColor distinto segun su CD_USO
+        //Esta funcion es llamada cada vez que se incluye algo nuevo en map.data
+        map.data.setStyle(function(feature) {
+            //Determino el color en base al tipo de uso del suelo
+            var uso = feature.getProperty('CD_USO');
+            return {
+                fillColor:  colorByUso[uso],
+                fillOpacity:0.5,
+                visible:    true,
+                zIndex:     zIndexOffset
+            };
         });
         zIndexOffset++;
+
+        //Ocultar el SIGPAC completo
+        //map.data.setStyle({visible: false});
+
+        //Cargo ahora otra parcela
+        poligono = 9;
+        parcela = 100;
+        var filtrado = importedFile.features.filter(elem => 
+            elem.properties.CD_POL==poligono && elem.properties.CD_PARCELA==parcela 
+        );
+        miGeoJson.features=filtrado;
+
+        //Importo el fichero filtrado al mapa para visualizarlo
+        //Tras a;adirlo se vuevle a correr la funcion setStyle() 
+        //y si no se ha cambiado, vuelve a aplicar los criterios de antes 
+        var added = map.data.addGeoJson(miGeoJson);
+
+        //Incluyo un listener generico para la capa que resalte la feature clickada
+        //Cada click hace mas visible la feature, el recinto, hasta legar a 100% y luego salta a 25% ...
+        map.data.addListener('mouseover', function(event) {
+            map.data.overrideStyle(event.feature, {fillOpacity: 1 });
+        });
+        map.data.addListener('mouseout', function(event) {
+            map.data.overrideStyle(event.feature, {fillOpacity: 0.5 });
+        });
+
+
+        
 //--------------------------------------------------------------------------
     }
 
