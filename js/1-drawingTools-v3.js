@@ -25,6 +25,8 @@ var puntos;
 
 var tapaMapa;                       //Rectangulo como la peninsula que tapa el mapa entero
 
+var selectedOption="CD_RECINTO";    //Propiedad seleccionada en el html por el usuario
+
 // Gestion de capas //
 const layersOptions = {
 //Iconos e informacion estatica para el menu de control de capas
@@ -214,6 +216,8 @@ function initMap() {
         strokeWeight: 5,
         zIndex: 2,                              //Asi tapaMapa esta por debajo
     });
+    //map.data.setStyle(geoJsonDefaultOptions);
+    
     //-------------------------------------------------------------------------------------------------//
 
     //Probando integracion con Catastro !!

@@ -17,6 +17,13 @@
 
             <input type="file" id="file-input" onchange="importarFichero(this)" style="display: none;"/>
             <input type="button" value="Importar fichero" onclick="document.getElementById('file-input').click();" />
+
+            <select id="lista1" name="listado" onchange="selectedOption=this.value;console.log(selectedOptionIndex)" >
+                <option>CD_RECINTO</option>
+                <option>CD_PARCELA</option>
+                <option>NU_AREA</option>
+            </select>
+
         </div>
 
         <div class="dropdown">

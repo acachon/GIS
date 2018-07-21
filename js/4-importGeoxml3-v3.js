@@ -15,7 +15,25 @@
 
     var geoXml = null;                      //Objeto con toda la informaicon importada de las capas del catastro
     var zIndexOffset=10;                    //Todos los objetos se indexan desde aqui. Reservo desde el zIndex=0 para mis usos (ej tapaMapa tiene zIndex=0)
-    var importedFile =null;                 //Variable donde importo el contenido del fichero seleccionado
+    
+    //SIGPAC
+    var importedFileSigpac =null;           //Variable donde importo el contenido del fichero seleccionado
+    const geoJsonDefaultOptions ={          //Opciones por defecto para lo cargado en al capa map.data (google.maps.Map.data)
+        strokeColor:    "black",
+        strokeOpacity:  0.8,
+        fillColor:      "black",
+        fillOpacity:    0.5,
+        clickable:      true,
+        visible:        true,           
+        zIndex:         zIndexOffset,
+    }
+    const colorByUso={                      //Colores predefinidos para las parcelas segun su uso (property CD_USO) 
+        TA: "yellow",
+        OV: "green",
+        IM: "black",
+        PR: "brown"
+    };
+
     var miGeoJson = new Object;             //Declaro un objeto tipo geoJson vacio, sin features 
     miGeoJson.type = "FeatureCollection";   //Tengo que incluir este atributo para que sea un geoJson y lo coja googleMaps en addGeoJson()
 
@@ -170,65 +188,6 @@
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
-
-        //Selecciono los recintos, features, a filtrar
-        var poligono = 10;
-        var parcela = 43;
-        var filtrado = importedFile.features.filter(elem => 
-            elem.properties.CD_POL==poligono && elem.properties.CD_PARCELA==parcela 
-        );
-        miGeoJson.features=filtrado;
-
-        //Importo el fichero filtrado al mapa para visualizarlo
-        var added = map.data.addGeoJson(miGeoJson);
-
-        //Aplicar un estilo en funcion de los valores de las propiedades
-        const colorByUso={
-            TA: "#ffffe3",
-            OV: "green",
-            IM: "grey",
-            PR: "brown"
-        };
-        //Recorro cada feature y le asigno un fillColor distinto segun su CD_USO
-        //Esta funcion es llamada cada vez que se incluye algo nuevo en map.data
-        map.data.setStyle(function(feature) {
-            //Determino el color en base al tipo de uso del suelo
-            var uso = feature.getProperty('CD_USO');
-            return {
-                fillColor:  colorByUso[uso],
-                fillOpacity:0.5,
-                visible:    true,
-                zIndex:     zIndexOffset
-            };
-        });
-        zIndexOffset++;
-
-        //Ocultar el SIGPAC completo
-        //map.data.setStyle({visible: false});
-
-        //Cargo ahora otra parcela
-        poligono = 9;
-        parcela = 100;
-        var filtrado = importedFile.features.filter(elem => 
-            elem.properties.CD_POL==poligono && elem.properties.CD_PARCELA==parcela 
-        );
-        miGeoJson.features=filtrado;
-
-        //Importo el fichero filtrado al mapa para visualizarlo
-        //Tras a;adirlo se vuevle a correr la funcion setStyle() 
-        //y si no se ha cambiado, vuelve a aplicar los criterios de antes 
-        var added = map.data.addGeoJson(miGeoJson);
-
-        //Incluyo un listener generico para la capa que resalte la feature clickada
-        //Cada click hace mas visible la feature, el recinto, hasta legar a 100% y luego salta a 25% ...
-        map.data.addListener('mouseover', function(event) {
-            map.data.overrideStyle(event.feature, {fillOpacity: 1 });
-        });
-        map.data.addListener('mouseout', function(event) {
-            map.data.overrideStyle(event.feature, {fillOpacity: 0.5 });
-        });
-
-
         
 //--------------------------------------------------------------------------
     }
@@ -256,9 +215,98 @@
         geoXml.docs[docID].gpolygons[polyID].setOptions(geoXml.docs[docID].gpolygons[polyID].normalStyle);
     }
 
+    //--------------------------------------------------------------//
+    //Funciones para procesar la informacion del SIGPAC             //
+    //--------------------------------------------------------------// 
+    
+    function seleccionarParcelasSigpac (refCats, ficheroGeoJson){
+    //Extrae del fichero importedFileSigpac (geoJson) las features, recintos, requeridos
+    //Input es un array de referencias catastrales y el fichero geoJson del Sigpac con toda la info
+    //Output es un fichero geoJson con los recintos solicitados listo para añadir por GoogleMapps
+    //Ejemplo: var miGeoJson = seleccionarParcelasSigpac (["23900A00900100","23900A01000043"], importedFileSigpac);
+        
+        //0. compruebo que se han pasado los argumentos obligatorios
+        if (!ficheroGeoJson || !refCats) return null
+        
+        //Variables locales e inicializacion
+        var geoJson = new Object;             //Declaro un objeto tipo geoJson vacio, sin features 
+        geoJson.type = "FeatureCollection";   //Tengo que incluir este atributo para que sea un geoJson y lo coja googleMaps en addGeoJson()
+
+        refCats.forEach(refCatastral => {
+            //1. Extraigo los parametros de la Referencia catastral. Ejemplo:23900A01000045 (14 minimo de RC)
+            var provincia = refCatastral.substr(0, 2);
+            var municipio = refCatastral.substr(2, 3);
+            var sector = refCatastral.substr(5, 1);         //No se necesita para esta consulta en concreto
+            var poligono = refCatastral.substr(6, 3);
+            var parcela = refCatastral.substr(9, 5);  
+            
+            //2. Filtro el fichero para extraer los datos de esta refCat
+            var filtrado = ficheroGeoJson.features.filter(feature =>
+                feature.properties.CD_POL==poligono && feature.properties.CD_PARCELA==parcela  
+                && feature.properties.CD_MUN==municipio && feature.properties.CD_PROV==provincia  
+            );
+            
+            //3. Incluyo las nuevas features en el listado existente del nuevo fichero geoJson
+            !geoJson.features ? geoJson.features=filtrado : geoJson.features = geoJson.features.concat(filtrado);
+            
+        });       
+
+        return geoJson;
+    }
+
+    function mostrarParcelasSigpac (geoJson){
+    //Muestra el geoJson pasado en el mapa
+    //Input el fichero geoJson extraido del Sigpac con la info de las RCs seleccionadas
+    //Output objeto devuelto por la funcion 
+    //Ejemplo: mostrarParcelasSigpac (miGeoJson);
+        
+        //0. compruebo que se han pasado los argumentos obligatorios
+        if (!geoJson) return null
+
+        //2. Incluyo el nuevo geoJson en la capa map.data
+        var output = map.data.addGeoJson(geoJson);
+
+        //3. Recorro cada feature y le asigno un fillColor distinto segun su CD_USO
+        //Esta funcion (setStyle) es llamada cada vez que se incluye algo nuevo en map.data. No solo en este momento
+        //map.data.setStyle(geoJsonDefaultOptions);
+        map.data.setStyle(function(feature) {
+            //Determino el color en base al tipo de uso del suelo
+            var style = {
+                fillColor:  colorByUso[feature.getProperty('CD_USO')],  //colorByUso es un Objeto global constante definido previamente
+                ///*
+                fillOpacity:    0.5,
+                clickable:      true,
+                visible:        true,           
+                zIndex:         zIndexOffset,
+                //*/
+            };
+            return style;
+        });
+        zIndexOffset++;
+
+        //4. Incluyo un listener generico para la capa que resalte la feature clickada
+        //Al pasar el raton se realza el recinto con opacity=1 ...
+        map.data.addListener('mouseover', function(event) {
+            map.data.overrideStyle(event.feature, {fillOpacity: 1 });
+        });
+        map.data.addListener('mouseout', function(event) {
+            !!geoJsonDefaultOptions.fillOpacity? opacity= geoJsonDefaultOptions.fillOpacity : opacity= 0.5; 
+            map.data.overrideStyle(event.feature, {fillOpacity: opacity });
+        });
+        //Al hacer click muestra una infoWindow con el parametro seleccionado en el desplegable
+        map.data.addListener('click', function(event) {
+            //Muestro ese parametro en la infoBox
+            document.getElementById("info-box").innerHTML=event.feature.getProperty(selectedOption);
+        });
+
+
+        return output;
+    }
+
     function importarFichero(e) {
     //Lee un fichero de texto seleccionado por el usuario       
-    //Importo el contenido del fichero de texto en la variable gloabl importedFile
+    //Importo el contenido del fichero de texto en la variable gloabl importedFileSigpac
+    //No puedo acceder a la ruta del fichero, y solo el usuario puede elegir los ficheros (por seguridad en javascript)
     //ToDo: gestionar carga multiple de ficheros
         if (!e.files[0]) return                 //Si no hay achivo m salgo sin hacer nada
     
@@ -266,13 +314,43 @@
         var reader = new FileReader();
         document.getElementById('file-content').textContent = "Fichero: "+e.files[0].name;
         reader.onload = function (e) {
-            importedFile= JSON.parse(e.target.result);          
+            importedFileSigpac= JSON.parse(e.target.result);          
             document.getElementById('file-content').textContent += "\nFichero importado";
             console.log("Fichero importado");
+
+            //Lo meto aqui para que sea mas directo el proceso pinchando un solo boton
+            //toDo: Pensar la logica y sacar esto de esta funcion !!
+            //Extraigo las RCs que me interesan y construyo mi propio geoJson
+            var miGeoJson = seleccionarParcelasSigpac (["23900A00900100","23900A01000043"], importedFileSigpac);
+
+            //Muestro el fichero generado
+            map.data.setStyle(geoJsonDefaultOptions);       //me aseguro de que se hayan cargado los valores por defecto (zIndex, por ejemplo)
+            mostrarParcelasSigpac (miGeoJson);
         };
         //Lanzo la lectura del fichero (asincrona)
         reader.readAsText(e.files[0]);                //Lee xml, json
-    }
+    }    
+        
+     function combineOptions (overrides, defaults) {
+    // Combine two options objects: a set of default values and a set of override values 
+        var result = {};
+        if (!!overrides) {
+            for (var prop in overrides) {
+                if (overrides.hasOwnProperty(prop)) {
+                    result[prop] = overrides[prop];
+                }
+            }
+        }
+        if (!!defaults) {
+            for (prop in defaults) {
+                if (defaults.hasOwnProperty(prop) && (result[prop] === undefined)) {
+                    result[prop] = defaults[prop];
+                }
+            }
+        }
+        return result;
+    };
+
 
     //--------------------------------------------------------------//
     //Funciones a eliminar porque no se usan o  aplican en Catastro //
