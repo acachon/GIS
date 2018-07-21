@@ -58,7 +58,7 @@ var layersControl = [
         layerName:      "SIGPAC",
         flagViewable:   true,
         flagClickable:  true,
-        flagEditable:   false,
+        flagEditable:   true,
     },
 ];
 
@@ -234,8 +234,8 @@ function initMap() {
     google.maps.event.addDomListener(map, 'click', 
         function (e) {
             if (selectingFlag && drawingManager.drawingMode==null){     //Si esta apretado el [CTRL] y no esta editando formas (modo mano)
-                selectingFlag=false;        //Desmarco la tecla [CTRL]
-                mostrarRefCatastral(e.latLng);        //Soliciito RC al catastro y lo muestro en Visor y ventana lateral
+                selectingFlag=false;                    //Desmarco la tecla [CTRL]
+                mostrarRefCatastral(e.latLng);          //Soliciito RC al catastro y lo muestro en Visor y ventana lateral
             }
         }
     );
@@ -749,8 +749,12 @@ function mostrarRefCatastral(miLatLng){
         //2. Muestro el RC en el visor inferior 
         document.getElementById("info-box").innerText=refCastastral;
     
-        //Importo la capa XML de la referencia catastral del servicio web de Catastro y lo incluyo en el mapa y geoXml
-        importarXmlRefCastastral(refCastastral); 
+        //2.1 Importo la capa XML de la referencia catastral del servicio web de Catastro y lo incluyo en el mapa y geoXml
+        importarXmlRefCastastral(refCastastral);
+
+        //2.2 Importo los recintos SIGPAC de la referencia catastral del fichero importedFile y lo incluyo en el map.data
+        var miGeoJson = seleccionarParcelasSigpac(refCastastral, importedFileSigpac);   //Selecciono los recintos y creo un geoJson
+        mostrarParcelasSigpac (miGeoJson);                                              //Doy formato, activo listeners y pongo en el mapa
     });
 }
     
@@ -926,6 +930,10 @@ function toogleClickable (layerID){
     else if(layerID==1){
         //Llama al metodo interno de geoXml que muestra u oculta todos los docs
         geoXml.activatePlacemarks(!layersControl[layerID].flagClickable);       //Cambia la propiedad active usada por los listerners para inhibirse
+    }
+    else if(layerID==1){
+    //Al cambiar (toggle) el flagClickable de la capa, los listener se inhibiran porque revisan este flag antes de tomar accion
+    //No hay que hacer nada mas aqui especifico para esta capa SIGPAC  
     }
 
     layersControl[layerID].flagClickable ? src="./img/noseleccionar.png" : src="./img/seleccionar.png"; //Next icon to be updated

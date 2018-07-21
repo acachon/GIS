@@ -23,7 +23,7 @@
         strokeOpacity:  0.8,
         fillColor:      "black",
         fillOpacity:    0.5,
-        clickable:      true,
+        clickable:      false,
         visible:        true,           
         zIndex:         zIndexOffset,
     }
@@ -228,9 +228,19 @@
     //Input es un array de referencias catastrales y el fichero geoJson del Sigpac con toda la info
     //Output es un fichero geoJson con los recintos solicitados listo para añadir por GoogleMapps
     //Ejemplo: var miGeoJson = seleccionarParcelasSigpac (["23900A00900100","23900A01000043"], importedFileSigpac);
-        
+    
+        //Si la capa SIGPAC (2) no es editable (false) no permito incluir nuevas capas
+        if (!layersControl[2].flagEditable) {
+            console.log("seleccionarParcelasSigpac: la capa SIGPAC esta NO editable");
+            return;
+        }
+        //------------------------------------------------ 
+    
         //0. compruebo que se han pasado los argumentos obligatorios
         if (!ficheroGeoJson || !refCats) return null
+
+        //Si es un string solo lo meto como el [0] de un Array
+        if (typeof refCats === 'string'){refCats=[refCats];}
         
         //Variables locales e inicializacion
         var geoJson = new Object;             //Declaro un objeto tipo geoJson vacio, sin features 
@@ -276,18 +286,22 @@
         //4. Incluyo un listener generico para la capa que resalte la feature clickada
         //Al pasar el raton se realza el recinto con opacity=1 ...
         map.data.addListener('mouseover', function(event) {
+            if (!layersControl[2].flagClickable) return;                //Flag global que inhibie los listener cuando no SIGPAC no es seleccionable
+            
             map.data.overrideStyle(event.feature, {fillOpacity: 1 });
         });
         map.data.addListener('mouseout', function(event) {
+            if (!layersControl[2].flagClickable) return;                //Flag global que inhibie los listener cuando no SIGPAC no es seleccionable
+
             !!geoJsonDefaultOptions.fillOpacity? opacity= geoJsonDefaultOptions.fillOpacity : opacity= 0.5; 
             map.data.overrideStyle(event.feature, {fillOpacity: opacity });
         });
         //Al hacer click muestra una infoWindow con el parametro seleccionado en el desplegable
         map.data.addListener('click', function(event) {
+            if (!layersControl[2].flagClickable) return;                //Flag global que inhibie los listener cuando no SIGPAC no es seleccionable            
             //Muestro ese parametro en la infoBox
             document.getElementById("info-box").innerHTML=event.feature.getProperty(selectedOption);
         });
-
 
         return output;
     }
