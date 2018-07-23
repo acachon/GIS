@@ -192,7 +192,7 @@ function initMap() {
                 var contador = cuentaObjetos(puntos, newShape) || 0;               
                 console.log ("Objetos seleccionados :" + contador);    //Cuenta los objetos de misMarkers dentro del nuevo polygon
                 document.getElementById("info-box").innerText = "Objetos: " + contador;
-                document.getElementById("content-window").innerText += "\nObjetos: " + contador;
+                document.getElementById("content-text").innerText += "\nObjetos: " + contador;
             }
         }
     );
@@ -599,7 +599,7 @@ function cultivosRefCatastral(refCatastral, miCallback){
 
         //0. Estructura de salida para el listado de cultivos de una parcela    
         var cultivos = {
-            refCastastral:  "",     //23900A01000045
+            refCatastral:  "",     //23900A01000045
             descripcion:    "",     //Polígono 10 Parcela 45, JAEN (JAÉN)
             nombre:         "",     //Caimbo
             subparcelas:     [{
@@ -626,7 +626,7 @@ function cultivosRefCatastral(refCatastral, miCallback){
     
     
         //1. Recupero los campos sencillos que son comunes a la parcela
-        cultivos.refCastastral  =responseXML.getElementsByTagName("pc1")[0].innerHTML+responseXML.getElementsByTagName("pc2")[0].innerHTML;
+        cultivos.refCatastral  =responseXML.getElementsByTagName("pc1")[0].innerHTML+responseXML.getElementsByTagName("pc2")[0].innerHTML;
         cultivos.descripcion    =responseXML.getElementsByTagName("ldt")[0].innerHTML;
         cultivos.nombre         =responseXML.getElementsByTagName("npa")[0].innerHTML;
         
@@ -742,29 +742,29 @@ function mostrarRefCatastral(miLatLng){
 //Muestra en la ventana lateral las coordenadas, en el visor la RefCat devuelta por catastro
 //Llama a la funcion para consultar del catastro la Ref a partir de las coordenandas y visualizarlas
     //1. Muestra las coordenadas en la ventana lateral
-    document.getElementById("content-window").innerText +=  "\nLat: " + Math.round(miLatLng.lat()*1000)/1000
+    document.getElementById("content-text").innerText +=  "\nLat: " + Math.round(miLatLng.lat()*1000)/1000
                                                             +"\nLng: " + Math.round(miLatLng.lng()*1000)/1000;
     //Solicito la RC del Catastro para esas coordenadas y la muestro en el visor
-    refCatastralCoordenadas(miLatLng, function(refCastastral){
+    refCatastralCoordenadas(miLatLng, function(refCatastral){
         //2. Muestro el RC en el visor inferior 
-        document.getElementById("info-box").innerText=refCastastral;
+        document.getElementById("info-box").innerText=refCatastral;
     
         //2.1 Importo la capa XML de la referencia catastral del servicio web de Catastro y lo incluyo en el mapa y geoXml
-        importarXmlRefCastastral(refCastastral);
+        importarXmlRefCatastral(refCatastral);
 
         //2.2 Importo los recintos SIGPAC de la referencia catastral del fichero importedFile y lo incluyo en el map.data
-        var miGeoJson = seleccionarParcelasSigpac(refCastastral, importedFileSigpac);   //Selecciono los recintos y creo un geoJson
+        var miGeoJson = seleccionarParcelasSigpac(refCatastral, importedFileSigpac);   //Selecciono los recintos y creo un geoJson
         mostrarParcelasSigpac (miGeoJson);                                              //Doy formato, activo listeners y pongo en el mapa
     });
 }
     
-function importarXmlRefCastastral(refCatastral){
+function importarXmlRefCatastral(refCatastral){
 //Importa del catastro la capa XML de la referencia catastral que se le solicita
 //Llama a useTheData como callback para actuar tras importar la capa XML
 
     //Si la capa catastro (1) no es editable (false) no permito incluir nuevas capas y trae esta del catastro
     if (!layersControl[1].flagEditable) {
-        console.log("importarXmlRefCastastral: la capa catastro esta no editable");
+        console.log("importarXmlRefCatastral: la capa catastro esta no editable");
         return;
     }
     //------------------------------------------------ 
@@ -791,7 +791,7 @@ function importarXmlRefCastastral(refCatastral){
 /**
  * @description Devuelve la referencia catastral de unas coordenadas
  * @param {*} coordenadas:  coordenadas del punto al que calcular RefCatastral. Es tipo .latLng(), i.e. {lat: 37.8555 ,lng:-3.7555}
- * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro refCastastral que es un String (14 digitos)
+ * @param {*} miCallback:   funcion llamada cuando obtengo la respuesta, con el parametro refCatastral que es un String (14 digitos)
  * @example     referenciaCoordenadas(caimbo, function(respuesta){console.log("RC es: "+ respuesta)});
  * 
  * @requires    conexion a internet al catastro https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?

@@ -103,7 +103,17 @@
     function useTheData(docs) {
     //Crea un listado (html a incrustar) dinamico en la ventana lateral con las parcelas importadas
 
-        //Consulto en catastro los cultivos de los docs y lo actualizo para los nuevos
+        //1. Creo la cabecera y datos comunes de la tabla ocn la info de cada parcela y sus cultivos
+        //Cabecera html
+        var col1 = "Nombre";
+        var col2 = "Ref. Catastral";
+        var col3 = "Subparcelas";
+        var col4 = "Area (m2)";
+        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th></tr></thead>";
+        //Arranco el body html
+        var bodyHtml = "<tbody>";
+
+        //2. Consulto en catastro los cultivos de los docs y lo actualizo para los nuevos
         //Reviso todos los docs para ver si tienen cultivos o no. En caso negativo los calculo y los meto
         geoXml.docs.forEach(doc => {
             if (!doc.cultivos){    //si no tiene aun atributo de cultivos
@@ -113,20 +123,26 @@
                 //Consulto los cultivos al catastro y los asigno al doc como callback
                 cultivosRefCatastral(refcat, function(cultivos){
                     doc.cultivos=cultivos;
+
                 });
             }
         });
-    
-        //Construyo el codigo html de la ventana lateral con la info de la parcela
-        var sidebarHtml = '<table><tr><td><a href="javascript:showAllPoly();">Show All</a></td></tr>';
 
+        
+        ///*
+        var sidebarHtml = '<table><tr><td><a href="javascript:showAllPoly();">Show All</a></td></tr>';
         //Crear el sidebar con la info de todos los poligonos y parcelas
-        //CReo un listenr en cada pol'igono para resaltarlo con mouseover
         for (var n=0; n<docs.length; n++){
             //Recorro todas las poligonales de la n-capa KML (subparcelas) para ponerlas en el sidebar y darles formato   
             for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
                 //Creo una nueva fila en el sidebar con la info de cada poligono: y le asigno una funcion de mouseover/out/etc...
-                sidebarHtml += '<tr><td onmouseover="kmlHighlightPoly(' + n + "," + i + ');" onmouseout="kmlUnHighlightPoly(' + n + "," + i + ');"><a href="javascript:kmlClick(' + n + "," + i + ');">' + docs[0].placemarks[i].name + '</a> - <a href="javascript:kmlShowPoly(' + n + "," + i + ');">show</a></td></tr>';
+                sidebarHtml += '<tr><td '
+                +  'onmouseover="kmlHighlightPoly(' + n + "," + i + ');" '
+                + 'onmouseout="kmlUnHighlightPoly(' + n + "," + i + ');">'
+                +   '<a href="javascript:kmlClick(' + n + "," + i + ');">' 
+                +  docs[0].placemarks[i].name +  '</a> - '
+                +'<a href="javascript:kmlShowPoly(' + n + "," + i + ');">show</a></td></tr>';
+
                 //Aplico el estilo normal por defecto y creo los listener de mouseover/out para realzar la subparacela
                 geoXml.docs[n].gpolygons[i].normalStyle = normalStyle;
                 highlightPolyListener(geoXml.docs[n].gpolygons[i]);   //Creo los listener en esta subparcela
@@ -136,11 +152,115 @@
         //Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
         sidebarHtml += "</table>";
         document.getElementById("sidebar").innerHTML = sidebarHtml;
+        //*/
+
     };
 
     //--------------------------------------------------------------//
     //Funciones para visualizacion de la capa KML y sus subparcelas //
     //--------------------------------------------------------------// 
+
+    function tablaCatastroSubparcelas (refCatastral){
+    //Construye una tabla HTML donde visualizar la info de las subparcelas
+
+        //Determino el doc asociado a esta refCatastral y selecciono sus cultivos
+        for (var i=0; i<geoXml.docs.length; i++){
+            if (geoXml.docs[i].cultivos.refCatastral==refCatastral) break;
+        }
+        var cultivos =   geoXml.docs[i].cultivos;
+
+        //Construyo el codigo html de la ventana lateral con la info de la parcela
+        //1. Cabecera
+        var col1 = "Subparcela";
+        var col2 = "Cultivo";  
+        var col3 = "IP";
+        var col4 = "Area (m2)";
+        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th></tr></thead>";
+
+        //2. Recorro cada subparcela, cada registro de cultivos, para extraer la informacion de cada fila
+        var bodyHtml = "<tbody>";
+        cultivos.subparcelas.forEach((subparcela) => {
+
+            var nombre      =   subparcela.subID;
+            var cultivo     =   subparcela.cultivoID;   //Uso la abreviatura por simplicidad
+            //var cultivo     =   subparcela.cultivo;
+            var ip          =   subparcela.intensidad;
+            var superficie  =   subparcela.superficie;
+
+            //Calculo el indice de la poligonal que se corresponde con esta subparcela 9no tienen el mismo orden)
+            //empiezo en 1 porque se que el primero no es una subparcela sino la parcela completa
+            for (var j=1; j<geoXml.docs[i].gpolygons.length; j++){
+                var empieza =   geoXml.docs[i].gpolygons[j].infoWindowOptions.content.indexOf("h3> ");
+                var acaba   =   geoXml.docs[i].gpolygons[j].infoWindowOptions.content.indexOf("</h3");
+                subpName    =   geoXml.docs[i].gpolygons[j].infoWindowOptions.content.substr(empieza+6, acaba-empieza-6);
+                //refcat=doc.url.substr(doc.url.indexOf("refcat=")+7,14); //Cojo las 14 posiciones despues de "refcat="
+                if (subpName==nombre) break;
+            }
+            var index = j;
+
+            //Incluyo un evento mousever/out para resaltar la subparcela cuando se apunte a su nombre
+            //La varibale i retiene el indice al docs[i] del que estamos calculando sus subparcelas
+            var nombreActivo = ' style="color:blue;cursor: pointer;" ' 
+                    +'onmouseover="kmlHighlightPoly(' + i + "," + index + ');" '
+                    +'onmouseout="kmlUnHighlightPoly(' + i + "," + index + ');" '
+                    +'onclick="kmlShowPoly(' + i + "," + index + ');" ' + '>'
+                    + nombre;
+            
+            //Incluyo una nueva fila al body de la tabla
+            //Observa que el td del nombre no esta cerrado para meter los listener del redCattastralActive
+            bodyHtml += "<tr><td"+ nombreActivo +"</td><td>"+ cultivo +"</td><td>"+ ip +"</td><td>"+ superficie +"</td></tr>";
+        });
+        bodyHtml += "</tbody>";
+
+        //3. Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
+        var tablaHtml = cabeceraTabla + bodyHtml;
+        tablaHtml += "</table>";
+        document.getElementById("tabla-catastro-subparcelas").innerHTML = tablaHtml;
+
+    }
+    
+    function tablaCatastroParcelas (){
+    //Construye una tabla HTML donde visualizar la info de las parcelas
+
+        //Construyo el codigo html de la ventana lateral con la info de la parcela
+        //1. Cabecera
+        var col1 = "";
+        //var col1 = "Nombre";
+        var col2 = '<a '+ ' style="color:blue;"'+ ' href="javascript:showAllPoly();">Ref. Catastral</a>';      //Si pincho en el titulo de la columna se muestra todo de nuevo
+        //var col2 = "Ref. Catastral";  
+        var col3 = "Subparcelas";
+        var col4 = "Area (m2)";
+        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th></tr></thead>";
+
+        //2. Recorro cada ref catastral, cada doc del geoXml, para extraer la informacion de cada fila
+        var bodyHtml = "<tbody>";
+        geoXml.docs.forEach((doc, index) => {
+            //var nombre      =   doc.cultivos.nombre;
+            var nombre      =   "";
+            var refCatastral=   doc.cultivos.refCatastral;
+            var subparcelas =   doc.cultivos.subparcelas.length;
+            var superficie  =   doc.cultivos.superficie;
+
+            //Incluyo un evento mousever/out para resaltar la parcela cuando se indique su refCatastral
+            //La parcela completa siempre es el primer poligono de los importados del catastro.(hipotesis)
+            var refCatastralActive = ' style="color:blue;cursor: pointer;" ' 
+                    +'onmouseover="kmlHighlightPoly(' + index + "," + 0 + ');" '
+                    +'onmouseout="kmlUnHighlightPoly(' + index + "," + 0 + ');" '
+                    +'onclick="tablaCatastroSubparcelas(\'' + refCatastral + '\');"' + '>'
+                    + refCatastral;
+            
+            //Incluyo una nueva fila al body de la tabla
+            //Observ que el td de la RC no esta cerrado para meter los listener del redCattastralActive
+            bodyHtml += "<tr><td>"+ nombre +"</td><td"+ refCatastralActive +"</td><td>"+ subparcelas +"</td><td>"+ superficie +"</td></tr>";
+        });
+        bodyHtml += "</tbody>";
+
+        //3. Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
+        var tablaHtml = cabeceraTabla + bodyHtml;
+        tablaHtml += "</table>";
+        document.getElementById("tabla-catastro-parcelas").innerHTML = tablaHtml;
+
+    }
 
     function highlightPolyListener(poly) {
     //Declaro los listener para realzar la subparcela al pasar el raton
@@ -188,11 +308,8 @@
 
 //------//Pruebas a eliminar---------------------------------------------------
         console.log("Pruebas acachon");
-        visibilidadSigpac(false);
-        console.log("SIGPAC false");
 
-        //visibilidadSigpac(true);
-        console.log("SIGPAC true");
+
 //--------------------------------------------------------------------------
     }
 
@@ -315,10 +432,10 @@
     
         //Declaro el callback de la lectura del fichero y lo cargo en importFile
         var reader = new FileReader();
-        document.getElementById('file-content').textContent = "Fichero: "+e.files[0].name;
+        document.getElementById('content-text').textContent = "Fichero: "+e.files[0].name;
         reader.onload = function (e) {
             importedFileSigpac= JSON.parse(e.target.result);          
-            document.getElementById('file-content').textContent += "\nFichero importado";
+            document.getElementById('content-text').textContent += "\nFichero importado";
             console.log("Fichero importado");
 
             //Lo meto aqui para que sea mas directo el proceso pinchando un solo boton

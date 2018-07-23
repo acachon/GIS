@@ -10,7 +10,9 @@
         <div id="info-box">Respuesta</div>
         <div id="sidebar">Respuesta</div>
         <div id="content-window">
-            <pre id="file-content">Contenido archivo aqui</pre>
+            <div id="tabla-catastro-parcelas" class="clase-tabla"></div>
+            <div id="tabla-catastro-subparcelas" class="clase-tabla"></div>
+            <div id="content-text"></div>
         </div>
         <div id="content-window2">Botones
             <br><button id="boton1" onclick="copiarOverlays()">Copiar</button>
@@ -23,6 +25,9 @@
                 <option>CD_PARCELA</option>
                 <option>NU_AREA</option>
             </select>
+
+            <br><button id="boton2" onclick="tablaCatastroParcelas()">Parcelas</button>
+            <button id="boton3" onclick="tablaCatastroSubparcelas('23900A01500005')">Subparcelas</button>            
 
         </div>
 

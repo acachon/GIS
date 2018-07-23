@@ -6,45 +6,44 @@
     height: 100%;
     float: left;
     height: 100%;
-    width: 79%;
+    width: 50%;
     box-sizing: border-box;
-    border: 1px solid black;
+    border: 2px solid black;
 }
 
 /********************/
 /* Ventanas de info */
 /********************/
-
-#content-window {
-    float: left;
-    height: 25%;
-    line-height: 30px;
-    padding-left: 10px;
-    width: 19%;
-    white-space: nowrap; 
-    overflow: auto;
-    text-overflow: ellipsis;
-    box-sizing: border-box;
-    border: 1px solid black;
-}
-#content-window2 {
-    float: left;
-    height: 25%;
-    line-height: 30px;
-    padding-left: 10px;
-    width: 19%;
-    box-sizing: border-box;
-    border: 1px solid black;
-}
 #sidebar {
     float: left;
-    height: 50%;
+    height: 25%;
     line-height: 30px;
     padding-left: 10px;
-    width: 19%;
+    width: 50%;
     box-sizing: border-box;
     border: 1px solid black;
     overflow:auto;
+}
+#content-window {
+    float: left;
+    height: 60%;
+    width: 50%;
+    box-sizing: border-box;
+    border: 1px solid black;
+    line-height: 30px;
+    padding-left: 10px;
+    white-space: nowrap; 
+    overflow: auto;
+    text-overflow: ellipsis;
+}
+#content-window2 {
+    float: left;
+    height: 15%;
+    line-height: 30px;
+    padding-left: 10px;
+    width: 50%;
+    box-sizing: border-box;
+    border: 1px solid black;
 }
 html, body {
     height: 100%;
