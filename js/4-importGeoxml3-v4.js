@@ -155,13 +155,18 @@
     
     function tablaCatastroParcelas (){
     //Construye una tabla HTML donde visualizar la info de las parcelas
+        
+        //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
+        if (document.getElementById("tabla-catastro-parcelas").innerHTML!=="") {
+            console.log("Oculto la tabla");
+            document.getElementById("tabla-catastro-parcelas").innerHTML="";
+            return;
+        }
 
         //Construyo el codigo html de la ventana lateral con la info de la parcela
         //1. Cabecera
         var col1 = "";
-        //var col1 = "Nombre";
         var col2 = '<a '+ ' style="color:blue;"'+ ' href="javascript:showAllPoly();">Ref. Catastral</a>';      //Si pincho en el titulo de la columna se muestra todo de nuevo
-        //var col2 = "Ref. Catastral";  
         var col3 = "Subparcelas";
         var col4 = "Area (ha)";
         var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th></tr></thead>";
@@ -198,6 +203,13 @@
 
     function tablaCatastroSubparcelas (refCatastral){
     //Construye una tabla HTML donde visualizar la info de las subparcelas
+            
+        //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
+        if (document.getElementById("tabla-catastro-subparcelas").innerHTML!=="") {
+            console.log("Oculto la tabla");
+            document.getElementById("tabla-catastro-subparcelas").innerHTML="";
+            return;
+        }
 
         //Determino el doc asociado a esta refCatastral y selecciono sus cultivos
         for (var i=0; i<geoXml.docs.length; i++){
@@ -257,6 +269,13 @@
        
     function tablaCatastroCultivos (refCatastral){
     //Construye una tabla HTML donde visualizar la info de los cultivos de la parcela indicada por su refCatastral
+            
+        //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
+        if (document.getElementById("tabla-catastro-cultivos").innerHTML!=="") {
+            console.log("Oculto la tabla");
+            document.getElementById("tabla-catastro-cultivos").innerHTML="";
+            return;
+        }
 
         //Determino el doc asociado a esta refCatastral y selecciono sus cultivos
         var parcela = geoXml.docs.filter(doc=> doc.cultivos.refCatastral==refCatastral );
@@ -618,10 +637,104 @@
         });
         zIndexOffset++;    
     }
+
+    function mostrarTablaSigPacParcelas (){
+    //Muestro en una tabla la informacion de las parcelas incluidas en el mapa
+        
+        //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
+        if (document.getElementById("tabla-sigpac-parcelas").innerHTML!=="") {
+            console.log("Oculto la tabla");
+            document.getElementById("tabla-sigpac-parcelas").innerHTML="";
+            return;
+        }
+
+        //comprubo que haya algun mapa Sigpac cargado
+        if (!sigPacData) {console.log("No hay objeto sigpacData");return}
+
+        //Construyo el codigo html de la ventana lateral con la info de la parcela
+        //1. Cabecera
+        var col1 = '<a '+ ' style="color:blue;"'+ ' href="javascript:showAllPoly();">Ref. Catastral</a>';      //Si pincho en el titulo de la columna se muestra todo de nuevo
+        var col2 = "Recintos";
+        var col3 = "Area (ha)";
+        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th></tr></thead>";
+
+        //2. Recorro cada recinto, cada registro de cultivosSigpac, para extraer la informacion de cada fila
+        var bodyHtml = "<tbody>";
+        sigPacData.forEach(parcela => {
+            var refCatastral=   parcela.refCatastral;
+            var recintos    =   parcela.recintos.length;
+            var superficie  =   Math.round(parcela.superficie/10000*100)/100; //convierto en hectareas y Redondeo 2 decimales 
+
+            //3. Incluyo una nueva fila al body de la tabla
+            //Observa que el td del nombre no esta cerrado para meter los listener del redCattastralActive
+            bodyHtml += "<tr><td>"+ refCatastral +"</td><td>"+ recintos +"</td><td>"+ superficie +"</td></tr>";
+        });
+        bodyHtml += "</tbody>";        
+
+        //4. Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
+        var tablaHtml = cabeceraTabla + bodyHtml;
+        tablaHtml += "</table>";
+        document.getElementById("tabla-sigpac-parcelas").innerHTML = tablaHtml;        
+
+    }
+    
+    function mostrarTablaSigPacRecintos (refCatastral){
+    //Muestro en una tabla la informacion de los recintos de una misma parcela (refCatastral)
+    
+        //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
+        if (document.getElementById("tabla-sigpac-recintos").innerHTML!=="") {
+            console.log("Oculto la tabla");
+            document.getElementById("tabla-sigpac-recintos").innerHTML="";
+            return;
+        }
+
+        if (!refCatastral || !sigPacData) {console.log("No hay refCat u objeto sigpacData");return}
+        else {
+            var recintos = sigPacData.filter(parcela => parcela.refCatastral==refCatastral)[0].recintos;  //Cojo el campo cultivosSigpac del registro que coincida con refCatastral
+            if (!recintos) {console.log("Referencia catastral no encontrada en SigPac");return}
+        }
+
+        //Construyo el codigo html de la ventana lateral con la info de la parcela
+        //1. Cabecera
+        var col1 = "RecintoID";
+        var col2 = "Cultivo";  
+        var col3 = "Riego(%)";
+        var col4 = "Pastos(%)";
+        var col5 = "Area (ha)";
+        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th><th>"+ col5 +"</th></tr></thead>";
+
+        //2. Recorro cada recinto, cada registro de cultivosSigpac, para extraer la informacion de cada fila
+        var bodyHtml = "<tbody>";
+        recintos.forEach(recinto => {
+            var recintoID   =   recinto.ID_RECINTO;
+            var cultivo     =   recinto.CD_USO;
+            var riego       =   recinto.COEF_REG;
+            var pastos      =   recinto.PC_PASTOS;
+            var area        =   Math.round(recinto.NU_AREA/10000*100)/100; //convierto en hectareas y Redondeo 2 decimales           
+
+            //3. Incluyo una nueva fila al body de la tabla
+            //Observa que el td del nombre no esta cerrado para meter los listener del redCattastralActive
+            bodyHtml += "<tr><td>"+ recintoID +"</td><td>"+ cultivo +"</td><td>"+ riego +"</td><td>"+ pastos +"</td><td>"+ area +"</td></tr>";
+        });
+        bodyHtml += "</tbody>";        
+
+        //4. Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
+        var tablaHtml = cabeceraTabla + bodyHtml;
+        tablaHtml += "</table>";
+        document.getElementById("tabla-sigpac-recintos").innerHTML = tablaHtml;        
+
+    }
    
     function mostrarTablaSigPacCultivos (refCatastral){
     //Muestro en una tabla la informacion de la parcela agregada por cultivo
-        
+
+        //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
+        if (document.getElementById("tabla-sigpac-cultivos").innerHTML!=="") {
+            console.log("Oculto la tabla");
+            document.getElementById("tabla-sigpac-cultivos").innerHTML="";
+            return;
+        }
+
         if (!refCatastral || !sigPacData) {console.log("No hay refCat u objeto sigpacData");return}
         else {
             var cultivos = sigPacData.filter(parcela => parcela.refCatastral==refCatastral)[0].cultivosSigpac;  //Cojo el campo cultivosSigpac del registro que coincida con refCatastral
@@ -658,76 +771,6 @@
         document.getElementById("tabla-sigpac-cultivos").innerHTML = tablaHtml;        
 
     }
-
-    function mostrarTablaSigPacParcelas (){
-    //Muestro en una tabla la informacion de las parcelas incluidas en el mapa
-
-        //Construyo el codigo html de la ventana lateral con la info de la parcela
-        //1. Cabecera
-        var col1 = '<a '+ ' style="color:blue;"'+ ' href="javascript:showAllPoly();">Ref. Catastral</a>';      //Si pincho en el titulo de la columna se muestra todo de nuevo
-        var col2 = "Recintos";
-        var col3 = "Area (ha)";
-        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th></tr></thead>";
-
-        //2. Recorro cada recinto, cada registro de cultivosSigpac, para extraer la informacion de cada fila
-        var bodyHtml = "<tbody>";
-        sigPacData.forEach(parcela => {
-            var refCatastral=   parcela.refCatastral;
-            var recintos    =   parcela.recintos.length;
-            var superficie  =   Math.round(parcela.superficie/10000*100)/100; //convierto en hectareas y Redondeo 2 decimales 
-
-            //3. Incluyo una nueva fila al body de la tabla
-            //Observa que el td del nombre no esta cerrado para meter los listener del redCattastralActive
-            bodyHtml += "<tr><td>"+ refCatastral +"</td><td>"+ recintos +"</td><td>"+ superficie +"</td></tr>";
-        });
-        bodyHtml += "</tbody>";        
-
-        //4. Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
-        var tablaHtml = cabeceraTabla + bodyHtml;
-        tablaHtml += "</table>";
-        document.getElementById("tabla-sigpac-parcelas").innerHTML = tablaHtml;        
-
-    }
-    
-    function mostrarTablaSigPacRecintos (refCatastral){
-    //Muestro en una tabla la informacion de los recintos de una misma parcela (refCatastral)
-    
-        if (!refCatastral || !sigPacData) {console.log("No hay refCat u objeto sigpacData");return}
-        else {
-            var recintos = sigPacData.filter(parcela => parcela.refCatastral==refCatastral)[0].recintos;  //Cojo el campo cultivosSigpac del registro que coincida con refCatastral
-            if (!recintos) {console.log("Referencia catastral no encontrada en SigPac");return}
-        }
-        //Construyo el codigo html de la ventana lateral con la info de la parcela
-        //1. Cabecera
-        var col1 = "RecintoID";
-        var col2 = "Cultivo";  
-        var col3 = "Riego(%)";
-        var col4 = "Pastos(%)";
-        var col5 = "Area (ha)";
-        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th><th>"+ col5 +"</th></tr></thead>";
-
-        //2. Recorro cada recinto, cada registro de cultivosSigpac, para extraer la informacion de cada fila
-        var bodyHtml = "<tbody>";
-        recintos.forEach(recinto => {
-            var recintoID   =   recinto.ID_RECINTO;
-            var cultivo     =   recinto.CD_USO;
-            var riego       =   recinto.COEF_REG;
-            var pastos      =   recinto.PC_PASTOS;
-            var area        =   Math.round(recinto.NU_AREA/10000*100)/100; //convierto en hectareas y Redondeo 2 decimales           
-
-            //3. Incluyo una nueva fila al body de la tabla
-            //Observa que el td del nombre no esta cerrado para meter los listener del redCattastralActive
-            bodyHtml += "<tr><td>"+ recintoID +"</td><td>"+ cultivo +"</td><td>"+ riego +"</td><td>"+ pastos +"</td><td>"+ area +"</td></tr>";
-        });
-        bodyHtml += "</tbody>";        
-
-        //4. Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
-        var tablaHtml = cabeceraTabla + bodyHtml;
-        tablaHtml += "</table>";
-        document.getElementById("tabla-sigpac-recintos").innerHTML = tablaHtml;        
-
-    }
-
     //--------------------------------------------------------------//
     //Funciones a eliminar porque no se usan o  aplican en Catastro //
     //--------------------------------------------------------------// 
