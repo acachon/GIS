@@ -152,131 +152,6 @@
 //--------------------------------------------------------------------------
     }
 
-
-
-    function tablaSigpacParcelas(){
-    //Genero una estructura con la info de los recintos organizada por parcela
-
-    var refCatastral="";        //guarda la refCatastral del recinto actual
-    var indiceParcela=0;        //guarda el indice de parcela actual
-
-    map.data.forEach(feature => {
-        if (!!feature.getProperty("ID_RECINTO")){     //En esta capa map.data hay tambien drawing elements, no solo SIGPAC
-            
-            //1. Relleno el objeto sigPacData[] con la informacion de los recintos agrupados por parcela
-            if (feature.getProperty("refCatastral") !== refCatastral){  //nueva refCatastral
-                //1. Extraigo los datos iniciales para una nueva parcela
-                var parcelaSigpac = {
-                    refCatastral:   feature.getProperty("refCatastral"),
-                    provincia:      feature.getProperty("CD_PROV"),
-                    municipio:      feature.getProperty("CD_MUN"),
-                    poligono:       feature.getProperty("CD_POL"),
-                    parcela:        feature.getProperty("CD_PARCELA"),
-                    superficie:     parseInt(feature.getProperty("NU_AREA")),
-                    recintos:       [{
-                                        ID_RECINTO: feature.getProperty("ID_RECINTO"),
-                                        CD_USO:     feature.getProperty("CD_USO"),
-                                        NU_AREA:    feature.getProperty("NU_AREA"),
-                                        COEF_REG:   feature.getProperty("COEF_REG"),
-                                        PC_PASTOS:  feature.getProperty("PC_PASTOS"),
-                                        PDTE_MEDIA: feature.getProperty("PDTE_MEDIA"),
-                                        REGION:     feature.getProperty("REGION"),
-                                        GC:         feature.getProperty("GC"),                                            
-                                    },   
-                                    ],
-                    cultivosSigpac: [{     //Atributo calculado agregando las subparcelas (recintos)
-                                        cultivo:    feature.getProperty("CD_USO"),      //tipo de cultivo
-                                        superficie: feature.getProperty("NU_AREA"),     //Agregado de superficies para ese cultivo
-                                        recintos:   1,                                  //contador numero de recintos con ese cultivo
-                                        pastosPC:   feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA"), //Porcentaje de pastos  (promedio por superficie)
-                                        coefRiego:  feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA"), //Coeficiente medio de riego (promedio por superficie)
-                                        pendiente:  feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA"), //Pendiente media (promedio por superficie)
-                                    }],
-                };
-
-                //2. Incluyo un nuevo elemento en el array de parcelas del sigPacData[]
-                !sigPacData? sigPacData = [parcelaSigpac] : sigPacData.push(parcelaSigpac);
-                indiceParcela   =   sigPacData.length-1;
-                refCatastral    =   feature.getProperty("refCatastral");
-
-            } else {    //Si es la misma refCatrastal que el recinto anterior agrego un nuevo recinto y actualizo el agregado por RC
-                //1. Agrego un nuevo recinto
-                sigPacData[indiceParcela].recintos.push({
-                    ID_RECINTO: feature.getProperty("ID_RECINTO"),
-                    CD_USO:     feature.getProperty("CD_USO"),
-                    NU_AREA:    feature.getProperty("NU_AREA"),
-                    COEF_REG:   feature.getProperty("COEF_REG"),
-                    PC_PASTOS:  feature.getProperty("PC_PASTOS"),
-                    PDTE_MEDIA: feature.getProperty("PDTE_MEDIA"),
-                    REGION:     feature.getProperty("REGION"),
-                    GC:         feature.getProperty("GC"),
-                });
-
-                //2. Acumulo los datos agregados por RC
-                sigPacData[indiceParcela].superficie += parseInt(feature.getProperty("NU_AREA"));
-
-                //3. Calculo el agregado por cultivo, recorriendo los cutivos ya acumulados o creando uno nuevo
-                var uso = feature.getProperty("CD_USO");
-
-                for (var i=0; i<sigPacData[indiceParcela].cultivosSigpac.length; i++){
-                //Verifico si es un cultivo existente y agrego los datos ahi
-                    
-                    if(sigPacData[indiceParcela].cultivosSigpac[i].cultivo == uso){ //4a. Este cultivo ya se esta acumulando
-                    
-                        sigPacData[indiceParcela].cultivosSigpac[i].superficie  += feature.getProperty("NU_AREA");
-                        sigPacData[indiceParcela].cultivosSigpac[i].recintos    ++;
-                        sigPacData[indiceParcela].cultivosSigpac[i].pastosPC    += feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA");
-                        sigPacData[indiceParcela].cultivosSigpac[i].coefRiego   += feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA");
-                        sigPacData[indiceParcela].cultivosSigpac[i].pendiente   += feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA");
-                        
-                        break;  //Salgo del bucle de cultivos porque he encontrado el que buscaba
-                    } 
-                }
-
-                //4b. Comprubeo si no he encontrado el cultivo y entonces creo un nuevo cultivo a agrwgar
-                if(i==sigPacData[indiceParcela].cultivosSigpac.length) {
-
-                    //Calculo el nuevo cultivo a agregar y lo inicializo
-                    var cultivosSigpac= {     //Atributo calculado agregando las subparcelas (recintos)
-                        cultivo:    feature.getProperty("CD_USO"),      //tipo de cultivo
-                        superficie: feature.getProperty("NU_AREA"),     //Agregado de superficies para ese cultivo
-                        recintos:   1,                                  //contador numero de recintos con ese cultivo
-                        pastosPC:   feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA"), //Porcentaje de pastos  (promedio por superficie)
-                        coefRiego:  feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA"), //Coeficiente medio de riego (promedio por superficie)
-                        pendiente:  feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA"), //Pendiente media (promedio por superficie)
-                    };
-
-                    //Agrego este nuevo cultivo al array de cultivos
-                    if (!!sigPacData[indiceParcela].cultivosSigpac){
-                        sigPacData[indiceParcela].cultivosSigpac.push(cultivosSigpac);
-                    }else{
-                        sigPacData[indiceParcela].cultivosSigpac=[cultivosSigpac];
-                    }
-                };
-
-            } //Fin If si es un recinto Sigpac               
-
-            //Muestro el resultado parcial tras cada nuevo recinto
-            console.log(sigPacData);
-        }; // Fin del recinto recorrido
-
-    }); //fin de procesar map.data
-
-    //Finalmente cierro el calculo de los promedios, dividiendo por la superficie total para cada ref catastral
-    if (!!sigPacData){}
-    sigPacData.forEach(refCat => {
-        refCat.cultivosSigpac.forEach(cultivo => {
-            cultivo.pastosPC    = cultivo.pastosPC / cultivo.superficie;
-            cultivo.coefRiego   = cultivo.coefRiego / cultivo.superficie;
-            cultivo.pendiente   = cultivo.pendiente / cultivo.superficie; 
-        });
-    });
-
-    //Muestro el resultado final por consola
-    console.log(sigPacData);
-    
-    } 
-
     function tablaCatastroSubparcelas (refCatastral){
     //Construye una tabla HTML donde visualizar la info de las subparcelas
 
@@ -443,6 +318,128 @@
     //Funciones para procesar la informacion del SIGPAC             //
     //--------------------------------------------------------------// 
     
+    function tablaSigpacParcelas(){
+    //Genero una estructura con la info de los recintos organizada por parcela
+    
+        var refCatastral="";        //guarda la refCatastral del recinto actual
+        var indiceParcela=0;        //guarda el indice de parcela actual
+    
+        map.data.forEach(feature => {
+            if (!!feature.getProperty("ID_RECINTO")){     //En esta capa map.data hay tambien drawing elements, no solo SIGPAC
+                
+                //1. Relleno el objeto sigPacData[] con la informacion de los recintos agrupados por parcela
+                if (feature.getProperty("refCatastral") !== refCatastral){  //nueva refCatastral
+                    //1. Extraigo los datos iniciales para una nueva parcela
+                    var parcelaSigpac = {
+                        refCatastral:   feature.getProperty("refCatastral"),
+                        provincia:      feature.getProperty("CD_PROV"),
+                        municipio:      feature.getProperty("CD_MUN"),
+                        poligono:       feature.getProperty("CD_POL"),
+                        parcela:        feature.getProperty("CD_PARCELA"),
+                        superficie:     parseInt(feature.getProperty("NU_AREA")),
+                        recintos:       [{
+                                            ID_RECINTO: feature.getProperty("ID_RECINTO"),
+                                            CD_USO:     feature.getProperty("CD_USO"),
+                                            NU_AREA:    feature.getProperty("NU_AREA"),
+                                            COEF_REG:   feature.getProperty("COEF_REG"),
+                                            PC_PASTOS:  feature.getProperty("PC_PASTOS"),
+                                            PDTE_MEDIA: feature.getProperty("PDTE_MEDIA"),
+                                            REGION:     feature.getProperty("REGION"),
+                                            GC:         feature.getProperty("GC"),                                            
+                                        },   
+                                        ],
+                        cultivosSigpac: [{     //Atributo calculado agregando las subparcelas (recintos)
+                                            cultivo:    feature.getProperty("CD_USO"),      //tipo de cultivo
+                                            superficie: feature.getProperty("NU_AREA"),     //Agregado de superficies para ese cultivo
+                                            recintos:   1,                                  //contador numero de recintos con ese cultivo
+                                            pastosPC:   feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA"), //Porcentaje de pastos  (promedio por superficie)
+                                            coefRiego:  feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA"), //Coeficiente medio de riego (promedio por superficie)
+                                            pendiente:  feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA"), //Pendiente media (promedio por superficie)
+                                        }],
+                    };
+    
+                    //2. Incluyo un nuevo elemento en el array de parcelas del sigPacData[]
+                    !sigPacData? sigPacData = [parcelaSigpac] : sigPacData.push(parcelaSigpac);
+                    indiceParcela   =   sigPacData.length-1;
+                    refCatastral    =   feature.getProperty("refCatastral");
+    
+                } else {    //Si es la misma refCatrastal que el recinto anterior agrego un nuevo recinto y actualizo el agregado por RC
+                    //1. Agrego un nuevo recinto
+                    sigPacData[indiceParcela].recintos.push({
+                        ID_RECINTO: feature.getProperty("ID_RECINTO"),
+                        CD_USO:     feature.getProperty("CD_USO"),
+                        NU_AREA:    feature.getProperty("NU_AREA"),
+                        COEF_REG:   feature.getProperty("COEF_REG"),
+                        PC_PASTOS:  feature.getProperty("PC_PASTOS"),
+                        PDTE_MEDIA: feature.getProperty("PDTE_MEDIA"),
+                        REGION:     feature.getProperty("REGION"),
+                        GC:         feature.getProperty("GC"),
+                    });
+    
+                    //2. Acumulo los datos agregados por RC
+                    sigPacData[indiceParcela].superficie += parseInt(feature.getProperty("NU_AREA"));
+    
+                    //3. Calculo el agregado por cultivo, recorriendo los cutivos ya acumulados o creando uno nuevo
+                    var uso = feature.getProperty("CD_USO");
+    
+                    for (var i=0; i<sigPacData[indiceParcela].cultivosSigpac.length; i++){
+                    //Verifico si es un cultivo existente y agrego los datos ahi
+                        
+                        if(sigPacData[indiceParcela].cultivosSigpac[i].cultivo == uso){ //4a. Este cultivo ya se esta acumulando
+                        
+                            sigPacData[indiceParcela].cultivosSigpac[i].superficie  += feature.getProperty("NU_AREA");
+                            sigPacData[indiceParcela].cultivosSigpac[i].recintos    ++;
+                            sigPacData[indiceParcela].cultivosSigpac[i].pastosPC    += feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA");
+                            sigPacData[indiceParcela].cultivosSigpac[i].coefRiego   += feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA");
+                            sigPacData[indiceParcela].cultivosSigpac[i].pendiente   += feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA");
+                            
+                            break;  //Salgo del bucle de cultivos porque he encontrado el que buscaba
+                        } 
+                    }
+    
+                    //4b. Comprubeo si no he encontrado el cultivo y entonces creo un nuevo cultivo a agrwgar
+                    if(i==sigPacData[indiceParcela].cultivosSigpac.length) {
+    
+                        //Calculo el nuevo cultivo a agregar y lo inicializo
+                        var cultivosSigpac= {     //Atributo calculado agregando las subparcelas (recintos)
+                            cultivo:    feature.getProperty("CD_USO"),      //tipo de cultivo
+                            superficie: feature.getProperty("NU_AREA"),     //Agregado de superficies para ese cultivo
+                            recintos:   1,                                  //contador numero de recintos con ese cultivo
+                            pastosPC:   feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA"), //Porcentaje de pastos  (promedio por superficie)
+                            coefRiego:  feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA"), //Coeficiente medio de riego (promedio por superficie)
+                            pendiente:  feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA"), //Pendiente media (promedio por superficie)
+                        };
+    
+                        //Agrego este nuevo cultivo al array de cultivos
+                        if (!!sigPacData[indiceParcela].cultivosSigpac){
+                            sigPacData[indiceParcela].cultivosSigpac.push(cultivosSigpac);
+                        }else{
+                            sigPacData[indiceParcela].cultivosSigpac=[cultivosSigpac];
+                        }
+                    };
+    
+                } //Fin If si es un recinto Sigpac               
+    
+                //Muestro el resultado parcial tras cada nuevo recinto
+                console.log(sigPacData);
+            }; // Fin del recinto recorrido
+        }); //fin de procesar map.data
+    
+        //Finalmente cierro el calculo de los promedios, dividiendo por la superficie total para cada ref catastral
+        if (!!sigPacData){}
+            sigPacData.forEach(refCat => {
+                refCat.cultivosSigpac.forEach(cultivo => {
+                    cultivo.pastosPC    = cultivo.pastosPC / cultivo.superficie;
+                    cultivo.coefRiego   = cultivo.coefRiego / cultivo.superficie;
+                    cultivo.pendiente   = cultivo.pendiente / cultivo.superficie; 
+            });
+        });
+    
+        //Muestro el resultado final por consola
+        console.log(sigPacData);
+
+    } 
+        
     function seleccionarParcelasSigpac (refCats, ficheroGeoJson){
     //Extrae del fichero importedFileSigpac (geoJson) las features, recintos, requeridos
     //Input es un array de referencias catastrales y el fichero geoJson del Sigpac con toda la info
