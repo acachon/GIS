@@ -152,8 +152,68 @@
 
 //--------------------------------------------------------------------------
     }
+     
+    function highlightPolyListener(poly) {
+    //Declaro los listener para realzar la subparcela al pasar el raton
+    //toDo: hacer los listener con un array de handlers
+        
+        var listeners = []; //Array donde guardo los listener handlers
+        listener = google.maps.event.addListener(poly, "mouseover", function () {
+            if (!poly.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa
+            poly.setOptions(highlightOptions);
+        });
+        listeners.push(listener);
+
+        listener = google.maps.event.addListener(poly, "mouseout", function () {
+            if (!poly.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa            
+            poly.setOptions(poly.normalStyle);
+        });
+        listeners.push(listener);
+
+        if (!poly.listeners){
+            poly.listeners = listeners; //Creo un atributo listeners y le asociado el array recien declarado
+        }else { 
+            //si ya existe el array de listerner en el objeto poly: añado los nuevos listeners
+            for (var i=0; i<listeners.length; i++){
+                poly.listeners.push(listeners[i]);
+            }
+        }
+    }
+
+    function kmlClick(docID, polyID) {
+    //Hace zoom y muestra la subparcela seleccionada como si la clickase
+        if (geoXml.docs[docID].gpolygons[polyID].getMap()) {
+            google.maps.event.trigger(geoXml.docs[docID].gpolygons[polyID], "click");
+        } else { //Si la subparcela no estaba visible en el mapa la muestra y luego zoom
+            geoXml.docs[docID].gpolygons[polyID].setMap(map);
+            google.maps.event.trigger(geoXml.docs[docID].gpolygons[polyID], "click");
+        }
+    }
+
+    function kmlShowPoly(docID, polyID) {
+    //Hace zoom en la subparcela polyID y oculta las demas
+        geoXml.hideDocument();
+        
+        //Muestro solo la parcela con el indice polyID seleccionado y hago zoom en ella
+        geoXml.docs[docID].gpolygons[polyID].setMap(map);
+        map.fitBounds(geoXml.docs[docID].gpolygons[polyID].bounds);
+    }
+
+    function kmlHighlightPoly(docID, polyID) {
+    //Resalto la subparcela polyID
+    //docID es el indice del documento, de la parcela KML.
+    //polyID es el indice del array de poligonos dentro de docs[docID]
+        geoXml.docs[docID].gpolygons[polyID].setOptions(highlightOptions);
+    }
+
+    function kmlUnHighlightPoly(docID, polyID) {
+    //Vuelvo al estilo normal a la subparcela polyID
+    //docID es el indice del documento, de la parcela KML.
+    //polyID es el indice del array de poligonos dentro de docs[docID]
+        geoXml.docs[docID].gpolygons[polyID].setOptions(geoXml.docs[docID].gpolygons[polyID].normalStyle);
+    }
     
-    function tablaCatastroParcelas (){
+    function mostrarTablaCatastroParcelas (){
     //Construye una tabla HTML donde visualizar la info de las parcelas
         
         //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
@@ -185,7 +245,7 @@
             var refCatastralActive = ' style="color:blue;cursor: pointer;" ' 
                     +'onmouseover="kmlHighlightPoly(' + index + "," + 0 + ');" '
                     +'onmouseout="kmlUnHighlightPoly(' + index + "," + 0 + ');" '
-                    +'onclick="tablaCatastroSubparcelas(\'' + refCatastral + '\');tablaCatastroCultivos(\'' + refCatastral + '\');"' + '>'
+                    +'onclick="mostrarTablaCatastroSubparcelas(\'' + refCatastral + '\');mostrarTablaCatastroCultivos(\'' + refCatastral + '\');"' + '>'
                     + refCatastral;
             
             //Incluyo una nueva fila al body de la tabla
@@ -201,7 +261,7 @@
 
     }
 
-    function tablaCatastroSubparcelas (refCatastral){
+    function mostrarTablaCatastroSubparcelas (refCatastral){
     //Construye una tabla HTML donde visualizar la info de las subparcelas
             
         //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
@@ -266,8 +326,8 @@
         document.getElementById("tabla-catastro-subparcelas").innerHTML = tablaHtml;
 
     }
-       
-    function tablaCatastroCultivos (refCatastral){
+        
+    function mostrarTablaCatastroCultivos (refCatastral){
     //Construye una tabla HTML donde visualizar la info de los cultivos de la parcela indicada por su refCatastral
             
         //Si pincho cunado la tabla ya se muestra lo que hago es ocultarla
@@ -307,67 +367,7 @@
         document.getElementById("tabla-catastro-cultivos").innerHTML = tablaHtml;
 
     }
-            
-    function highlightPolyListener(poly) {
-    //Declaro los listener para realzar la subparcela al pasar el raton
-    //toDo: hacer los listener con un array de handlers
         
-        var listeners = []; //Array donde guardo los listener handlers
-        listener = google.maps.event.addListener(poly, "mouseover", function () {
-            if (!poly.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa
-            poly.setOptions(highlightOptions);
-        });
-        listeners.push(listener);
-
-        listener = google.maps.event.addListener(poly, "mouseout", function () {
-            if (!poly.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa            
-            poly.setOptions(poly.normalStyle);
-        });
-        listeners.push(listener);
-
-        if (!poly.listeners){
-            poly.listeners = listeners; //Creo un atributo listeners y le asociado el array recien declarado
-        }else { 
-            //si ya existe el array de listerner en el objeto poly: añado los nuevos listeners
-            for (var i=0; i<listeners.length; i++){
-                poly.listeners.push(listeners[i]);
-            }
-        }
-    }
-
-    function kmlClick(docID, polyID) {
-    //Hace zoom y muestra la subparcela seleccionada como si la clickase
-        if (geoXml.docs[docID].gpolygons[polyID].getMap()) {
-            google.maps.event.trigger(geoXml.docs[docID].gpolygons[polyID], "click");
-        } else { //Si la subparcela no estaba visible en el mapa la muestra y luego zoom
-            geoXml.docs[docID].gpolygons[polyID].setMap(map);
-            google.maps.event.trigger(geoXml.docs[docID].gpolygons[polyID], "click");
-        }
-    }
-
-    function kmlShowPoly(docID, polyID) {
-    //Hace zoom en la subparcela polyID y oculta las demas
-        geoXml.hideDocument();
-        
-        //Muestro solo la parcela con el indice polyID seleccionado y hago zoom en ella
-        geoXml.docs[docID].gpolygons[polyID].setMap(map);
-        map.fitBounds(geoXml.docs[docID].gpolygons[polyID].bounds);
-    }
-
-    function kmlHighlightPoly(docID, polyID) {
-    //Resalto la subparcela polyID
-    //docID es el indice del documento, de la parcela KML.
-    //polyID es el indice del array de poligonos dentro de docs[docID]
-        geoXml.docs[docID].gpolygons[polyID].setOptions(highlightOptions);
-    }
-
-    function kmlUnHighlightPoly(docID, polyID) {
-    //Vuelvo al estilo normal a la subparcela polyID
-    //docID es el indice del documento, de la parcela KML.
-    //polyID es el indice del array de poligonos dentro de docs[docID]
-        geoXml.docs[docID].gpolygons[polyID].setOptions(geoXml.docs[docID].gpolygons[polyID].normalStyle);
-    }
-
     //--------------------------------------------------------------//
     //Funciones para procesar la informacion del SIGPAC             //
     //--------------------------------------------------------------// 
@@ -488,16 +488,19 @@
         });
 
         //Genero la tabla sigpacData con los datos de los recintos agregados por cultivo y por refCatastral
-        tablaSigpacParcelas();
+        generarTablaSigpacParcelas();
 
         return output;
     }
 
-    function tablaSigpacParcelas(){
+    function generarTablaSigpacParcelas(){
     //Genero una estructura con la info de los recintos organizada por parcela
+    //La genero por completo cada vez que llamo a mostrarParcelasSigpac, es decir al importar el ficehro y con cada nueva parcela ctrl+click
     
-        var refCatastral="";        //guarda la refCatastral del recinto actual
-        var indiceParcela=0;        //guarda el indice de parcela actual
+        //Inicializo las variables
+        sigPacData          =   [];     //Borro el contenido del sigpacData porque lo voy a generar de nuevo
+        var refCatastral    =   "";     //guarda la refCatastral del recinto actual
+        var indiceParcela   =   0;      //guarda el indice de parcela actual
     
         map.data.forEach(feature => {
             if (!!feature.getProperty("ID_RECINTO")){     //En esta capa map.data hay tambien drawing elements, no solo SIGPAC
@@ -663,11 +666,20 @@
         sigPacData.forEach(parcela => {
             var refCatastral=   parcela.refCatastral;
             var recintos    =   parcela.recintos.length;
-            var superficie  =   Math.round(parcela.superficie/10000*100)/100; //convierto en hectareas y Redondeo 2 decimales 
+            var superficie  =   Math.round(parcela.superficie/10000*100)/100; //convierto en hectareas y Redondeo 2 decimales
+            
+            //Incluyo un evento mousever/out para resaltar la parcela cuando se indique su refCatastral
+            //Inlcuyo un evento onclick para que consulte los cultivos y recintos de esa refCatastral
+            //Observ que el td de la RC no esta cerrado para meter los listener del redCattastralActive
+            var refCatastralActive = ' style="color:blue;cursor: pointer;" ' 
+                    //+'onmouseover="kmlHighlightPoly(' + index + "," + 0 + ');" '
+                    //+'onmouseout="kmlUnHighlightPoly(' + index + "," + 0 + ');" '
+                    +'onclick="mostrarTablaSigPacRecintos(\'' + refCatastral + '\');mostrarTablaSigPacCultivos(\'' + refCatastral + '\');"' + '>'
+                    + refCatastral;
 
             //3. Incluyo una nueva fila al body de la tabla
             //Observa que el td del nombre no esta cerrado para meter los listener del redCattastralActive
-            bodyHtml += "<tr><td>"+ refCatastral +"</td><td>"+ recintos +"</td><td>"+ superficie +"</td></tr>";
+            bodyHtml += "<tr><td"+ refCatastralActive +"</td><td>"+ recintos +"</td><td>"+ superficie +"</td></tr>";
         });
         bodyHtml += "</tbody>";        
 
@@ -771,6 +783,7 @@
         document.getElementById("tabla-sigpac-cultivos").innerHTML = tablaHtml;        
 
     }
+
     //--------------------------------------------------------------//
     //Funciones a eliminar porque no se usan o  aplican en Catastro //
     //--------------------------------------------------------------// 

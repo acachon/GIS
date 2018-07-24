@@ -599,43 +599,43 @@ function cultivosRefCatastral(refCatastral, miCallback){
 
         //0. Estructura de salida para el listado de cultivos de una parcela    
         var cultivos = {
-            refCatastral:  "",     //23900A01000045
+            refCatastral:   "",     //23900A01000045
             descripcion:    "",     //Polígono 10 Parcela 45, JAEN (JAÉN)
             nombre:         "",     //Caimbo
             subparcelas:     [{
-                subID:      "",            //a
-                cultivoID:  "",            //OR
-                cultivo:    "",            //Olivos regadio
-                intensidad: "",            //03 (ip, intensidad productiva)
-                superficie: "",            //196566 (ssp, metros cuadrados)
-            }],
+                                subID:      "",            //a
+                                cultivoID:  "",            //OR
+                                cultivo:    "",            //Olivos regadio
+                                intensidad: "",            //03 (ip, intensidad productiva)
+                                superficie: "",            //196566 (ssp, metros cuadrados)
+                            }],
             agregado:       [{      //Atributo calculado agregando las subparcelas (recintos)
-                cultivoID:  "",         //codigo tipo cultivo
-                cultivo:    "",         //tipo de cultivo
-                superficie: "",         //Agregado de superficies para ese cultivo
-                recintos:   "",         //contador numero de recintos con ese cultivo
-            }],
+                                cultivoID:  "",         //codigo tipo cultivo
+                                cultivo:    "",         //tipo de cultivo
+                                superficie: "",         //Agregado de superficies para ese cultivo
+                                recintos:   "",         //contador numero de recintos con ese cultivo
+                            }],
             superficie:     "",     //Atributo calculado como la suma de las superifices de los recintos o subparcelas
         }
         //Varibales internas para carga masiva de datos de subparcelas
-        var subID=      [];            //a
-        var cultivoID=  [];            //OR
-        var cultivo=    [];            //Olivos regadio
-        var intensidad= [];            //03 (ip, intesidad productiva)
-        var superficie= [];            //196566 (ssp)
+        var subID       =   [];            //a
+        var cultivoID   =   [];            //OR
+        var cultivo     =   [];            //Olivos regadio
+        var intensidad  =   [];            //03 (ip, intesidad productiva)
+        var superficie  =   [];            //196566 (ssp)
     
     
         //1. Recupero los campos sencillos que son comunes a la parcela
-        cultivos.refCatastral  =responseXML.getElementsByTagName("pc1")[0].innerHTML+responseXML.getElementsByTagName("pc2")[0].innerHTML;
-        cultivos.descripcion    =responseXML.getElementsByTagName("ldt")[0].innerHTML;
-        cultivos.nombre         =responseXML.getElementsByTagName("npa")[0].innerHTML;
+        cultivos.refCatastral   =   responseXML.getElementsByTagName("pc1")[0].innerHTML+responseXML.getElementsByTagName("pc2")[0].innerHTML;
+        cultivos.descripcion    =   responseXML.getElementsByTagName("ldt")[0].innerHTML;
+        cultivos.nombre         =   responseXML.getElementsByTagName("npa")[0].innerHTML;
         
         //2. Recupero la informacion de cada subparcela y lo meto en el array
-        subID       =responseXML.getElementsByTagName("cspr");
-        cultivoID   =responseXML.getElementsByTagName("ccc");
-        cultivo     =responseXML.getElementsByTagName("dcc");
-        intensidad  =responseXML.getElementsByTagName("ip");
-        superficie  =responseXML.getElementsByTagName("ssp");
+        subID       =   responseXML.getElementsByTagName("cspr");
+        cultivoID   =   responseXML.getElementsByTagName("ccc");
+        cultivo     =   responseXML.getElementsByTagName("dcc");
+        intensidad  =   responseXML.getElementsByTagName("ip");
+        superficie  =   responseXML.getElementsByTagName("ssp");
     
         //3. Lo meto ahora ordenado como un array de objetos
         cultivos.subparcelas=[]; //Inicializo el array para que el primer psuh vaya al [0]
@@ -698,11 +698,11 @@ function cultivosRefCatastral(refCatastral, miCallback){
     };
 
     //1. Extraigo los parametros de la Referencia catastral. Ejemplo:23900A01000045 (14 minimo de RC)
-    var provincia = refCatastral.substr(0, 2);
-    var municipio = refCatastral.substr(2, 3);
-    var sector = refCatastral.substr(5, 1);     //No se necesita para esta consulta en concreto
-    var poligono = refCatastral.substr(6, 3);
-    var parcela = refCatastral.substr(9, 5);
+    var provincia   = refCatastral.substr(0, 2);
+    var municipio   = refCatastral.substr(2, 3);
+    var sector      = refCatastral.substr(5, 1);     //No se necesita para esta consulta en concreto
+    var poligono    = refCatastral.substr(6, 3);
+    var parcela     = refCatastral.substr(9, 5);
 
     //2. Construyo la direccion y los parametros de la llamada al catastro
     let url="https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejeroCodigos.asmx/Consulta_DNPPP_Codigos?"
@@ -720,8 +720,7 @@ function cultivosRefCatastral(refCatastral, miCallback){
         if (respuesta!= -1){
                 console.log("JSON del catastro recibido OK");
             //4. Proceso el XML recibido para generar un objeto tipo Cultivos{}
-            var misCultivos; 
-            misCultivos = procesarXmlCultivos(respuesta.responseXML);
+            var misCultivos = procesarXmlCultivos(respuesta.responseXML);
 
             //5. Devuelvo el objeto Cultivos
             miCallback(misCultivos);
@@ -782,10 +781,6 @@ function importarXmlRefCatastral(refCatastral){
         + refCatastral 
         +"&del=23&mun=900&tipo=3d"
     );
-    //2. Añado la informacion de los cultivos
-    cultivosRefCatastral(refCatastral, function(cultivos){
-        geoXml.docs[geoXml.docs.length-1].cultivos=cultivos;
-    }); 
 }
 
 /**

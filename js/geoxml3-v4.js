@@ -659,6 +659,8 @@ geoXML3.parser = function (options) {
                 //docs[0].internals="";
             }
 
+
+
             //Llamo a la funcion callback definida por afterParse
             if (parserOptions.afterParse) {
                 parserOptions.afterParse(docs);
