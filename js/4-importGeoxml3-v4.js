@@ -18,6 +18,7 @@
     
     //SIGPAC
     var importedFileSigpac =null;           //Variable donde importo el contenido del fichero seleccionado
+    var sigPacData;                         //Variable donde almaceno las properties de los recintos del mapa por parcela
     const geoJsonDefaultOptions ={          //Opciones por defecto para lo cargado en al capa map.data (google.maps.Map.data)
         strokeColor:    "black",
         strokeOpacity:  0.8,
@@ -101,19 +102,10 @@
     };
 
     function useTheData(docs) {
-    //Crea un listado (html a incrustar) dinamico en la ventana lateral con las parcelas importadas
+    //Inlcuyo los cultivos en cada parcela
+    //Creo los listener para realzar dinamcamente cada parcela con el paso dle raton
 
-        //1. Creo la cabecera y datos comunes de la tabla ocn la info de cada parcela y sus cultivos
-        //Cabecera html
-        var col1 = "Nombre";
-        var col2 = "Ref. Catastral";
-        var col3 = "Subparcelas";
-        var col4 = "Area (m2)";
-        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th></tr></thead>";
-        //Arranco el body html
-        var bodyHtml = "<tbody>";
-
-        //2. Consulto en catastro los cultivos de los docs y lo actualizo para los nuevos
+        //1. Consulto en catastro los cultivos de los docs y lo actualizo para los nuevos
         //Reviso todos los docs para ver si tienen cultivos o no. En caso negativo los calculo y los meto
         geoXml.docs.forEach(doc => {
             if (!doc.cultivos){    //si no tiene aun atributo de cultivos
@@ -128,37 +120,162 @@
             }
         });
 
-        
-        ///*
-        var sidebarHtml = '<table><tr><td><a href="javascript:showAllPoly();">Show All</a></td></tr>';
-        //Crear el sidebar con la info de todos los poligonos y parcelas
+        //2. Dar formato a cada subparcela y declarar los listener para realzar dinamicamente ocn el raton
         for (var n=0; n<docs.length; n++){
-            //Recorro todas las poligonales de la n-capa KML (subparcelas) para ponerlas en el sidebar y darles formato   
+            //Recorro todas las poligonales de la n-capa KML (subparcelas) para darles formato   
             for (var i = 0; i < geoXml.docs[n].gpolygons.length; i++) {
-                //Creo una nueva fila en el sidebar con la info de cada poligono: y le asigno una funcion de mouseover/out/etc...
-                sidebarHtml += '<tr><td '
-                +  'onmouseover="kmlHighlightPoly(' + n + "," + i + ');" '
-                + 'onmouseout="kmlUnHighlightPoly(' + n + "," + i + ');">'
-                +   '<a href="javascript:kmlClick(' + n + "," + i + ');">' 
-                +  docs[0].placemarks[i].name +  '</a> - '
-                +'<a href="javascript:kmlShowPoly(' + n + "," + i + ');">show</a></td></tr>';
-
                 //Aplico el estilo normal por defecto y creo los listener de mouseover/out para realzar la subparacela
                 geoXml.docs[n].gpolygons[i].normalStyle = normalStyle;
                 highlightPolyListener(geoXml.docs[n].gpolygons[i]);   //Creo los listener en esta subparcela
             }
         }
-
-        //Incrusto el codigo HTML creado con el listado de subparcelas (poligonales)
-        sidebarHtml += "</table>";
-        document.getElementById("sidebar").innerHTML = sidebarHtml;
-        //*/
-
     };
 
     //--------------------------------------------------------------//
     //Funciones para visualizacion de la capa KML y sus subparcelas //
     //--------------------------------------------------------------// 
+
+    function showAllPoly() {
+    //Muestra todas las subparcelas y ajusta el zoom para verse todas
+        //Muestro todo el geoXml
+        geoXml.showDocument();
+        //Zoom a todos los docs[]
+        map.fitBounds(geoXml.boundsAll());        
+
+//------//Pruebas a eliminar---------------------------------------------------
+        console.log("Pruebas acachon");
+        //Recalculo y relleno la variable global sigPacData[]
+        tablaSigpacParcelas();
+
+
+
+//--------------------------------------------------------------------------
+    }
+
+
+
+    function tablaSigpacParcelas(){
+    //Genero una estructura con la info de los recintos organizada por parcela
+
+    var refCatastral="";        //guarda la refCatastral del recinto actual
+    var indiceParcela=0;        //guarda el indice de parcela actual
+
+    map.data.forEach(feature => {
+        if (!!feature.getProperty("ID_RECINTO")){     //En esta capa map.data hay tambien drawing elements, no solo SIGPAC
+            
+            //1. Relleno el objeto sigPacData[] con la informacion de los recintos agrupados por parcela
+            if (feature.getProperty("refCatastral") !== refCatastral){  //nueva refCatastral
+                //1. Extraigo los datos iniciales para una nueva parcela
+                var parcelaSigpac = {
+                    refCatastral:   feature.getProperty("refCatastral"),
+                    provincia:      feature.getProperty("CD_PROV"),
+                    municipio:      feature.getProperty("CD_MUN"),
+                    poligono:       feature.getProperty("CD_POL"),
+                    parcela:        feature.getProperty("CD_PARCELA"),
+                    superficie:     parseInt(feature.getProperty("NU_AREA")),
+                    recintos:       [{
+                                        ID_RECINTO: feature.getProperty("ID_RECINTO"),
+                                        CD_USO:     feature.getProperty("CD_USO"),
+                                        NU_AREA:    feature.getProperty("NU_AREA"),
+                                        COEF_REG:   feature.getProperty("COEF_REG"),
+                                        PC_PASTOS:  feature.getProperty("PC_PASTOS"),
+                                        PDTE_MEDIA: feature.getProperty("PDTE_MEDIA"),
+                                        REGION:     feature.getProperty("REGION"),
+                                        GC:         feature.getProperty("GC"),                                            
+                                    },   
+                                    ],
+                    cultivosSigpac: [{     //Atributo calculado agregando las subparcelas (recintos)
+                                        cultivo:    feature.getProperty("CD_USO"),      //tipo de cultivo
+                                        superficie: feature.getProperty("NU_AREA"),     //Agregado de superficies para ese cultivo
+                                        recintos:   1,                                  //contador numero de recintos con ese cultivo
+                                        pastosPC:   feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA"), //Porcentaje de pastos  (promedio por superficie)
+                                        coefRiego:  feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA"), //Coeficiente medio de riego (promedio por superficie)
+                                        pendiente:  feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA"), //Pendiente media (promedio por superficie)
+                                    }],
+                };
+
+                //2. Incluyo un nuevo elemento en el array de parcelas del sigPacData[]
+                !sigPacData? sigPacData = [parcelaSigpac] : sigPacData.push(parcelaSigpac);
+                indiceParcela   =   sigPacData.length-1;
+                refCatastral    =   feature.getProperty("refCatastral");
+
+            } else {    //Si es la misma refCatrastal que el recinto anterior agrego un nuevo recinto y actualizo el agregado por RC
+                //1. Agrego un nuevo recinto
+                sigPacData[indiceParcela].recintos.push({
+                    ID_RECINTO: feature.getProperty("ID_RECINTO"),
+                    CD_USO:     feature.getProperty("CD_USO"),
+                    NU_AREA:    feature.getProperty("NU_AREA"),
+                    COEF_REG:   feature.getProperty("COEF_REG"),
+                    PC_PASTOS:  feature.getProperty("PC_PASTOS"),
+                    PDTE_MEDIA: feature.getProperty("PDTE_MEDIA"),
+                    REGION:     feature.getProperty("REGION"),
+                    GC:         feature.getProperty("GC"),
+                });
+
+                //2. Acumulo los datos agregados por RC
+                sigPacData[indiceParcela].superficie += parseInt(feature.getProperty("NU_AREA"));
+
+                //3. Calculo el agregado por cultivo, recorriendo los cutivos ya acumulados o creando uno nuevo
+                var uso = feature.getProperty("CD_USO");
+
+                for (var i=0; i<sigPacData[indiceParcela].cultivosSigpac.length; i++){
+                //Verifico si es un cultivo existente y agrego los datos ahi
+                    
+                    if(sigPacData[indiceParcela].cultivosSigpac[i].cultivo == uso){ //4a. Este cultivo ya se esta acumulando
+                    
+                        sigPacData[indiceParcela].cultivosSigpac[i].superficie  += feature.getProperty("NU_AREA");
+                        sigPacData[indiceParcela].cultivosSigpac[i].recintos    ++;
+                        sigPacData[indiceParcela].cultivosSigpac[i].pastosPC    += feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA");
+                        sigPacData[indiceParcela].cultivosSigpac[i].coefRiego   += feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA");
+                        sigPacData[indiceParcela].cultivosSigpac[i].pendiente   += feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA");
+                        
+                        break;  //Salgo del bucle de cultivos porque he encontrado el que buscaba
+                    } 
+                }
+
+                //4b. Comprubeo si no he encontrado el cultivo y entonces creo un nuevo cultivo a agrwgar
+                if(i==sigPacData[indiceParcela].cultivosSigpac.length) {
+
+                    //Calculo el nuevo cultivo a agregar y lo inicializo
+                    var cultivosSigpac= {     //Atributo calculado agregando las subparcelas (recintos)
+                        cultivo:    feature.getProperty("CD_USO"),      //tipo de cultivo
+                        superficie: feature.getProperty("NU_AREA"),     //Agregado de superficies para ese cultivo
+                        recintos:   1,                                  //contador numero de recintos con ese cultivo
+                        pastosPC:   feature.getProperty("PC_PASTOS") * feature.getProperty("NU_AREA"), //Porcentaje de pastos  (promedio por superficie)
+                        coefRiego:  feature.getProperty("COEF_REG") * feature.getProperty("NU_AREA"), //Coeficiente medio de riego (promedio por superficie)
+                        pendiente:  feature.getProperty("PDTE_MEDIA") * feature.getProperty("NU_AREA"), //Pendiente media (promedio por superficie)
+                    };
+
+                    //Agrego este nuevo cultivo al array de cultivos
+                    if (!!sigPacData[indiceParcela].cultivosSigpac){
+                        sigPacData[indiceParcela].cultivosSigpac.push(cultivosSigpac);
+                    }else{
+                        sigPacData[indiceParcela].cultivosSigpac=[cultivosSigpac];
+                    }
+                };
+
+            } //Fin If si es un recinto Sigpac               
+
+            //Muestro el resultado parcial tras cada nuevo recinto
+            console.log(sigPacData);
+        }; // Fin del recinto recorrido
+
+    }); //fin de procesar map.data
+
+    //Finalmente cierro el calculo de los promedios, dividiendo por la superficie total para cada ref catastral
+    if (!!sigPacData){}
+    sigPacData.forEach(refCat => {
+        refCat.cultivosSigpac.forEach(cultivo => {
+            cultivo.pastosPC    = cultivo.pastosPC / cultivo.superficie;
+            cultivo.coefRiego   = cultivo.coefRiego / cultivo.superficie;
+            cultivo.pendiente   = cultivo.pendiente / cultivo.superficie; 
+        });
+    });
+
+    //Muestro el resultado final por consola
+    console.log(sigPacData);
+    
+    } 
 
     function tablaCatastroSubparcelas (refCatastral){
     //Construye una tabla HTML donde visualizar la info de las subparcelas
@@ -299,20 +416,6 @@
         }
     }
 
-    function showAllPoly() {
-    //Muestra todas las subparcelas y ajusta el zoom para verse todas
-        //Muestro todo el geoXml
-        geoXml.showDocument();
-        //Zoom a todos los docs[]
-        map.fitBounds(geoXml.boundsAll());        
-
-//------//Pruebas a eliminar---------------------------------------------------
-        console.log("Pruebas acachon");
-
-
-//--------------------------------------------------------------------------
-    }
-
     function kmlShowPoly(docID, polyID) {
     //Hace zoom en la subparcela polyID y oculta las demas
         geoXml.hideDocument();
@@ -376,6 +479,11 @@
                 feature.properties.CD_POL==poligono && feature.properties.CD_PARCELA==parcela  
                 && feature.properties.CD_MUN==municipio && feature.properties.CD_PROV==provincia  
             );
+
+            //2b. Aprovecho y le añado a cada recinto una propiedad con el refCatastral al que pertenecen
+            filtrado.forEach(recinto => {
+                recinto.properties.refCatastral= refCatastral;
+            });
             
             //3. Incluyo las nuevas features en el listado existente del nuevo fichero geoJson
             !geoJson.features ? geoJson.features=filtrado : geoJson.features = geoJson.features.concat(filtrado);
@@ -407,17 +515,20 @@
             
             map.data.overrideStyle(event.feature, {fillOpacity: 1 });
         });
+
+        //Al salir de la feature devuelvo el opacity al valor por defecto
         map.data.addListener('mouseout', function(event) {
             if (!layersControl[2].flagClickable) return;                //Flag global que inhibie los listener cuando no SIGPAC no es seleccionable
 
             !!geoJsonDefaultOptions.fillOpacity? opacity= geoJsonDefaultOptions.fillOpacity : opacity= 0.5; 
             map.data.overrideStyle(event.feature, {fillOpacity: opacity });
         });
+
         //Al hacer click muestra una infoWindow con el parametro seleccionado en el desplegable
         map.data.addListener('click', function(event) {
             if (!layersControl[2].flagClickable) return;                //Flag global que inhibie los listener cuando no SIGPAC no es seleccionable            
             //Muestro ese parametro en la infoBox
-            document.getElementById("info-box").innerHTML=event.feature.getProperty(selectedOption);
+            document.getElementById("info-box").innerHTML= "RecintoId: " + event.feature.getProperty(selectedOption);
         });
 
         return output;
@@ -438,8 +549,7 @@
             document.getElementById('content-text').textContent += "\nFichero importado";
             console.log("Fichero importado");
 
-            //Lo meto aqui para que sea mas directo el proceso pinchando un solo boton
-            //toDo: Pensar la logica y sacar esto de esta funcion !!
+            //Lo meto aqui para que sea mas directo el proceso pinchando un solo boton ya tengo un par de parcels al menos para jugar
             //Extraigo las RCs que me interesan y construyo mi propio geoJson
             var miGeoJson = seleccionarParcelasSigpac (["23900A00900100","23900A01000043"], importedFileSigpac);
 
@@ -463,7 +573,7 @@
         map.data.setStyle(function(feature) {
             //Determino el color en base al tipo de uso del suelo
             var style = {
-                fillColor:  colorByUso[feature.getProperty('CD_USO')],  //colorByUso es un Objeto global constante que signo un color a cada uso
+                fillColor:      colorByUso[feature.getProperty('CD_USO')],  //colorByUso es un Objeto global constante que signo un color a cada uso
                 fillOpacity:    0.5,
                 visible:        true,           
                 zIndex:         zIndexOffset,
