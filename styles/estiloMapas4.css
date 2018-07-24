@@ -16,7 +16,7 @@
 /********************/
 #sidebar {
     float: left;
-    height: 25%;
+    height: 15%;
     line-height: 30px;
     padding-left: 10px;
     width: 50%;
@@ -38,7 +38,7 @@
 }
 #content-window2 {
     float: left;
-    height: 15%;
+    height: 25%;
     line-height: 30px;
     padding-left: 10px;
     width: 50%;

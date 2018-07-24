@@ -13,12 +13,15 @@
             <div id="tabla-catastro-parcelas" class="clase-tabla"></div>
             <div id="tabla-catastro-subparcelas" class="clase-tabla"></div>
             <div id="tabla-catastro-cultivos" class="clase-tabla"></div>
+            <div id="tabla-sigpac-parcelas" class="clase-tabla"></div>
+            <div id="tabla-sigpac-recintos" class="clase-tabla"></div>
+            <div id="tabla-sigpac-cultivos" class="clase-tabla"></div>
             <div id="content-text"></div>
         </div>
         <div id="content-window2">Botones
-            <br><button id="boton1" onclick="copiarOverlays()">Copiar</button>
+            <button id="boton1" onclick="copiarOverlays()">Copiar</button>
 
-            <input type="file" id="file-input" onchange="importarFichero(this)" style="display: none;"/>
+            <input type="file" id="file-input" onchange="importarFicheroSigpac(this)" style="display: none;"/>
             <input type="button" value="Importar fichero" onclick="document.getElementById('file-input').click();" />
 
             <select id="lista1" name="listado" onchange="selectedOption=this.value;console.log(this.selectedIndex)" >
@@ -27,8 +30,16 @@
                 <option>NU_AREA</option>
             </select>
 
-            <br><button id="boton2" onclick="tablaCatastroParcelas()">Parcelas</button>
-            <button id="boton3" onclick="tablaCatastroSubparcelas('23900A01500005')">Subparcelas</button>            
+            <br>Catastro
+                <button id="boton2" onclick="tablaCatastroParcelas()">Parcelas</button>
+                <button id="boton3" onclick="tablaCatastroCultivos('23900A01500005')">Cultivos</button>
+                <button id="boton4" onclick="tablaCatastroSubparcelas('23900A01500005')">Subparcelas</button> 
+
+
+            <br>Sigpac :
+                <button id="boton5" onclick="mostrarTablaSigPacParcelas()">Parcelas</button>
+                <button id="boton6" onclick="mostrarTablaSigPacCultivos('23900A00900100')">Cultivos</button>
+                <button id="boton7" onclick="mostrarTablaSigPacRecintos('23900A00900100')">Recintos</button>            
 
         </div>
 
