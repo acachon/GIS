@@ -3,13 +3,16 @@
     <head>
         <title>Drawing tools</title>
         <meta charset="utf-8" name="viewport" content="initial-scale=1.0, user-scalable=no">
-        <link rel="stylesheet" type="text/css" href="./styles/estiloMapas4.css">
+        <link rel="stylesheet" type="text/css" href="./styles/estiloMapas-v5.css">
     </head>
     <body onload="initialize()">
         <div id="map_canvas"></div>
         <div id="info-box">Respuesta</div>
-        <div id="sidebar">Respuesta</div>
-        <div id="content-window">
+        <div id="sidebar">Respuesta
+            <div id="content-text"></div>
+        </div>
+        <div id="content-window">Tablas
+
             <div id="tabla-catastro-parcelas" class="clase-tabla"></div>
             <div id="tabla-catastro-cultivos" class="clase-tabla"></div>
             <div id="tabla-catastro-subparcelas" class="clase-tabla"></div>
@@ -17,7 +20,6 @@
             <div id="tabla-sigpac-cultivos" class="clase-tabla"></div>
             <div id="tabla-sigpac-recintos" class="clase-tabla"></div>
 
-            <div id="content-text"></div>
         </div>
         <div id="content-window2">Botones
             <button id="boton1" onclick="copiarOverlays()">Copiar</button>

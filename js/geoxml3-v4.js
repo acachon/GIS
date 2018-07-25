@@ -927,7 +927,7 @@ geoXML3.parser = function (options) {
                 //Borro los titulos y los vuelvo a crear segun este activo o no
                 //Ejemplo de infoWindowOptions.content ....
                 //"<div class="geoxml3_infowindow"><h3>Polígono 15 Parcela 5, JAEN (JAÉN)</h3><div><font size=+1>Consultar en la Sede Electrónica<br>del Catastro la parcela:</font><br><font size=+2><A href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx?del=23&muni=900&rc1=23900A0&rc2=1500005">23900A015000050000SK</a></font></div></div>"
-                !flag? titulo="" : titulo = element.infoWindowOptions.content.split('>')[2].slice(0, -4);    //El titulo esta tambien en el conenido de infoWindows
+                !flag? titulo="" : titulo = element.infoWindowOptions.content.split('>')[2].slice(0, -4);    //El titulo esta tambien en el contenido de infoWindows
                 element.setTitle(titulo);   //El title hay que cambiarlo con setTitle o no se modifica por parte de GoogleMaps si lo haces .title=""
             });
             //Activo los polygons como indica el flag

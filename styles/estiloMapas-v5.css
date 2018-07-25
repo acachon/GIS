@@ -1,0 +1,194 @@
+/********************/
+/* Canvas del  mapa */
+/********************/
+
+#map_canvas { 
+    height: 100%;
+    float: left;
+    height: 100%;
+    width: 60%;
+    box-sizing: border-box;
+    border: 2px solid black;
+}
+
+/********************/
+/* Ventanas de info */
+/********************/
+#sidebar {
+    float: left;
+    height: 15%;
+    line-height: 30px;
+    padding-left: 10px;
+    width: 40%;
+    box-sizing: border-box;
+    border: 1px solid black;
+    overflow:auto;
+}
+#content-window {
+    float: left;
+    height: 60%;
+    width: 40%;
+    box-sizing: border-box;
+    border: 1px solid black;
+    line-height: 30px;
+    padding-left: 10px;
+    white-space: nowrap; 
+    overflow: auto;
+    text-overflow: ellipsis;
+}
+#content-window2 {
+    float: left;
+    height: 25%;
+    line-height: 30px;
+    padding-left: 10px;
+    width: 40%;
+    box-sizing: border-box;
+    border: 1px solid black;
+}
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+#info-box {
+    background-color: white;
+    border: 1px solid black;
+    position: absolute;
+        bottom: 5px;
+        left: 5px;
+    height: 10px;
+    padding: 10px;
+    font-size: 12pt;
+}
+
+.p {
+    font-size: 18pt;
+}
+
+
+/********************/
+/* Control de Capas */
+/********************/
+.dropdown {
+    position: absolute;
+        top: 5px;
+        left: 10px;
+    display: inline-block;
+}
+
+.dropbtn {
+    background-color: #000000;
+    color: white;
+    padding: 10px;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+}
+
+.dropbtn:hover, .dropbtn:focus {
+    background-color: #00ff00;
+}
+
+.dropdown-content {
+    display: none;                  /*Oculta el menu desplegable*/
+    position: absolute;
+    background-color: #f1f1f1;
+    min-width: 160px;
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.dropdown-content p {
+    font-size: 14px;
+    color: black;
+    padding: 10px 10px;             /*alto y ancho de cada <a>*/
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown p:hover {
+    background-color: #ddd;       /*Color de fondo al pasar por encima de cada <a>*/
+}
+
+.show {display: block;}
+
+.imagen{
+    margin: 0;
+    display:inline-block;
+    height: 20px;
+    float: none;
+    cursor: pointer;
+}
+
+#myDropdown2 {
+    display: none;
+}
+
+.dropdown-content2 {
+    display: none;                  /*Oculta el menu desplegable*/
+    position: relative;
+    left: 160px;
+    top: 110px;
+    background-color: #f1f1f1;
+    min-width: 100px;
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+
+.dropdown-content2 p {
+    font-size: 14px;
+    color: black;
+    padding: 10px 0px;
+    margin: 10px;             /*alto y ancho de cada <a>*/
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+}
+/********************/
+/* Formato tablas   */
+/********************/
+
+table {
+    border-collapse: collapse;
+    width: 97%;
+}
+
+td {
+    padding-top:    0px;
+    padding-left:   2px;
+
+    text-align:     center;
+    font-size:      12px;
+    
+    border-bottom: 1px solid #ddd;
+}
+
+tr:hover {background-color:#cecccc;}
+
+th {
+    padding-top:    2px;
+    padding-left:   4px;
+
+    text-align:     center;
+    font-size:      14px;
+
+    background-color: rgb(236, 177, 89);
+    color: white;
+}
+#tabla-catastro-parcelas th {
+    padding-top:    4px;
+    padding-bottom: 4px;
+    padding-left:   4px;
+    padding-right:  0px;
+
+    text-align: center;
+    font-size:  16px;
+
+    background-color: rgb(104, 60, 9);
+    color: white;
+}
+#col1 {
+    text-align: left;
+}

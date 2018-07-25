@@ -225,17 +225,15 @@
 
         //Construyo el codigo html de la ventana lateral con la info de la parcela
         //1. Cabecera
-        var col1 = "";
-        var col2 = '<a '+ ' style="color:blue;"'+ ' href="javascript:showAllPoly();">Ref. Catastral</a>';      //Si pincho en el titulo de la columna se muestra todo de nuevo
-        var col3 = "Subparcelas";
-        var col4 = "Area (ha)";
-        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th></tr></thead>";
+        var col1 = '<a '+ ' href="javascript:showAllPoly();">Ref. Catastral</a>';      //Si pincho en el titulo de la columna se muestra todo de nuevo
+        var col2 = "Subparcelas";
+        var col3 = "Area (ha)";
+        var cabeceraTabla = "<table><thead><tr><th id='col1'>"+ col1 +"</th><th id='col2'>"+ col2 +"</th><th id='col3'>"+ col3 +"</th></tr></thead>";
 
         //2. Recorro cada ref catastral, cada doc del geoXml, para extraer la informacion de cada fila
         var bodyHtml = "<tbody>";
         geoXml.docs.forEach((doc, index) => {
             //var nombre      =   doc.cultivos.nombre;
-            var nombre      =   "";
             var refCatastral=   doc.cultivos.refCatastral;
             var subparcelas =   doc.cultivos.subparcelas.length;
             var superficie  =   Math.round(doc.cultivos.superficie/10000*10)/10; //convierto en hectareas y Redondeo 1 decimal 
@@ -250,7 +248,7 @@
             
             //Incluyo una nueva fila al body de la tabla
             //Observ que el td de la RC no esta cerrado para meter los listener del redCattastralActive
-            bodyHtml += "<tr><td>"+ nombre +"</td><td"+ refCatastralActive +"</td><td>"+ subparcelas +"</td><td>"+ superficie +"</td></tr>";
+            bodyHtml += "<tr><td id='col1'"+ refCatastralActive +"</td><td id='col2'>"+ subparcelas +"</td><td id='col3'>"+ superficie +"</td></tr>";
         });
         bodyHtml += "</tbody>";
 
@@ -283,7 +281,7 @@
         var col2 = "Cultivo";  
         var col3 = "IP";
         var col4 = "Area (ha)";
-        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th><th>"+ col4 +"</th></tr></thead>";
+        var cabeceraTabla = "<table><thead><tr><th  id='col1'>"+ col1 +"</th><th id='col2'>"+ col2 +"</th><th id='col3'>"+ col3 +"</th><th id='col4'>"+ col4 +"</th></tr></thead>";
 
         //2. Recorro cada subparcela, cada registro de cultivos, para extraer la informacion de cada fila
         var bodyHtml = "<tbody>";
@@ -316,7 +314,7 @@
             
             //Incluyo una nueva fila al body de la tabla
             //Observa que el td del nombre no esta cerrado para meter los listener del redCattastralActive
-            bodyHtml += "<tr><td"+ nombreActivo +"</td><td>"+ cultivo +"</td><td>"+ ip +"</td><td>"+ superficie +"</td></tr>";
+            bodyHtml += "<tr><td  id='col1'"+ nombreActivo +"</td><td  id='col2'>"+ cultivo +"</td><td  id='col3'>"+ ip +"</td><td id='col4'>"+ superficie +"</td></tr>";
         });
         bodyHtml += "</tbody>";
 
@@ -347,7 +345,7 @@
         var col1 = "Cultivo";
         var col2 = "Recintos";  
         var col3 = "Area (ha)";
-        var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th></tr></thead>";
+        var cabeceraTabla = "<table><thead><tr><th id='col1'>"+ col1 +"</th><th id='col2'>"+ col2 +"</th><th id='col3'>"+ col3 +"</th></tr></thead>";
 
         //2. Recorro cada cultivo, cada registro de cultivos, para extraer la informacion de cada fila
         var bodyHtml = "<tbody>";
@@ -357,7 +355,7 @@
             var area        =   Math.round(cultivo.superficie/10000*100)/100; //convierto en hectareas y Redondeo 2 decimales 
             
             //Incluyo una nueva fila al body de la tabla
-            bodyHtml += "<tr><td>"+ cultivoID +"</td><td>"+ recintos +"</td><td>"+ area +"</td></tr>";
+            bodyHtml += "<tr><td id='col1'>"+ cultivoID +"</td><td id='col2'>"+ recintos +"</td><td id='col3'>"+ area +"</td></tr>";
         });
         bodyHtml += "</tbody>";
 
@@ -372,6 +370,32 @@
     //Funciones para procesar la informacion del SIGPAC             //
     //--------------------------------------------------------------// 
 
+    function creaClickHandlerSigpac (recinto){
+    //CRea una infoWindow y la asocia al recinto facilitado
+    //CRea el listener onclick para mostrar dicha infowindow
+    
+        //1. Defino la infoWindow
+        var infoWindowOptions = {
+            content:        '<div class="sigpac_infowindow"><h3>Recinto: ' + recinto.getProperty("CD_RECINTO") +'</h3>'
+                            +'<br><h5>Cultivo: ' + recinto.getProperty("CD_USO") + '</h5></div>',
+            pixelOffset:    new google.maps.Size(0, 2),
+        };
+    
+        //2. Creo la infoWindow y al maceno tambien las opciones para poder recrearla  mas adelante
+        polygon.setProperty("infoWindow")           = new google.maps.InfoWindow(infoWindowOptions);
+        polygon.setProperty("infoWindowOptions")    = infoWindowOptions;
+    
+        //3. Creo el Listener que lo asocia al click en el poligono "p"
+        google.maps.event.addListener(polygon, 'click', function (e) {
+            //if (!polygon.active) return;           //Flag que desactiva el Listener cuando se pone a no-clikable esa capa
+    
+            polygon.getProperty("infoWindow").close();                           //La cierro
+            polygon.getProperty("infoWindow").setOptions(p.infoWindowOptions);   //La vuelvo a configurar (variando estas Options puedo hacer que muestre cosas distintas cada vez)
+            polygon.getProperty("infoWindow").setPosition(e.latLng);             //Indico el lugar donde mostrarse
+            polygon.getProperty("infoWindow").open(this.map);                    //Y finalmente lo muestro
+        });
+    }
+
     function importarFicheroSigpac(e) {
     //Lee un fichero de texto seleccionado por el usuario       
     //Importo el contenido del fichero de texto en la variable gloabl importedFileSigpac
@@ -385,6 +409,7 @@
         reader.onload = function (e) {
             importedFileSigpac= JSON.parse(e.target.result);          
             document.getElementById('content-text').textContent += "\nFichero importado";
+            document.getElementById("sidebar").scrollTop = 9999;                            //force scroll down            
             console.log("Fichero importado");
 
             //Lo meto aqui para que sea mas directo el proceso pinchando un solo boton ya tengo un par de parcels al menos para jugar
@@ -483,8 +508,34 @@
         //Al hacer click muestra una infoWindow con el parametro seleccionado en el desplegable
         map.data.addListener('click', function(event) {
             if (!layersControl[2].flagClickable) return;                //Flag global que inhibie los listener cuando no SIGPAC no es seleccionable            
+            
             //Muestro ese parametro en la infoBox
             document.getElementById("info-box").innerHTML= "RecintoId: " + event.feature.getProperty(selectedOption);
+            
+            //Muestro la infowindow asociada
+            var recintoInfoWindowOptions = {
+                content:        '<div class="sigpac_infowindow"><p id="titulo">Recinto: <b>' + event.feature.getProperty("CD_RECINTO") +'</b></p>'
+                                +'<p>(Pol: ' + event.feature.getProperty("CD_POL") + ', Par: ' + event.feature.getProperty("CD_PARCELA") + ')</p>'
+                                +'<p id="atributo">Cultivo: <b>' + event.feature.getProperty("CD_USO") + '</b></p>'
+                                +'<p>(' + Math.round(event.feature.getProperty("NU_AREA")/10000*100)/100 +' ha.)<p></div>',
+
+                //content:    "Recinto: " + event.feature.getProperty("CD_RECINTO") +"\nCultivo: " + event.feature.getProperty("CD_USO"),
+            }
+            //CReo un nuevo infoWindow (si es parte del Sigpac)
+            if (!!event.feature.getProperty("CD_RECINTO")){    
+                event.feature.setProperty("infoWindow", new google.maps.InfoWindow(recintoInfoWindowOptions));
+                
+                //Cierro todas las ventanas de infoWindow abiertas del Sigpac
+                map.data.forEach(feature => {
+                    if (!!feature.getProperty("infoWindow")){
+                        feature.getProperty("infoWindow").close();
+                    }
+                });
+                event.feature.getProperty("infoWindow").close();
+                event.feature.getProperty("infoWindow").setOptions(recintoInfoWindowOptions);   //La vuelvo a configurar (variando estas Options puedo hacer que muestre cosas distintas cada vez)
+                event.feature.getProperty("infoWindow").setPosition(event.latLng);              //Indico el lugar donde mostrarse
+                event.feature.getProperty("infoWindow").open(this.map);                             //Y finalmente lo muestro
+            }
         });
 
         //Genero la tabla sigpacData con los datos de los recintos agregados por cultivo y por refCatastral
@@ -503,7 +554,7 @@
         var indiceParcela   =   0;      //guarda el indice de parcela actual
     
         map.data.forEach(feature => {
-            if (!!feature.getProperty("ID_RECINTO")){     //En esta capa map.data hay tambien drawing elements, no solo SIGPAC
+            if (!!feature.getProperty("CD_RECINTO")){     //En esta capa map.data hay tambien drawing elements, no solo SIGPAC
                 
                 //1. Relleno el objeto sigPacData[] con la informacion de los recintos agrupados por parcela
                 if (feature.getProperty("refCatastral") !== refCatastral){  //nueva refCatastral
@@ -516,7 +567,7 @@
                         parcela:        feature.getProperty("CD_PARCELA"),
                         superficie:     parseInt(feature.getProperty("NU_AREA")),
                         recintos:       [{
-                                            ID_RECINTO: feature.getProperty("ID_RECINTO"),
+                                            CD_RECINTO: feature.getProperty("CD_RECINTO"),
                                             CD_USO:     feature.getProperty("CD_USO"),
                                             NU_AREA:    feature.getProperty("NU_AREA"),
                                             COEF_REG:   feature.getProperty("COEF_REG"),
@@ -544,7 +595,7 @@
                 } else {    //Si es la misma refCatrastal que el recinto anterior agrego un nuevo recinto y actualizo el agregado por RC
                     //1. Agrego un nuevo recinto
                     sigPacData[indiceParcela].recintos.push({
-                        ID_RECINTO: feature.getProperty("ID_RECINTO"),
+                        CD_RECINTO: feature.getProperty("CD_RECINTO"),
                         CD_USO:     feature.getProperty("CD_USO"),
                         NU_AREA:    feature.getProperty("NU_AREA"),
                         COEF_REG:   feature.getProperty("COEF_REG"),
@@ -656,7 +707,7 @@
 
         //Construyo el codigo html de la ventana lateral con la info de la parcela
         //1. Cabecera
-        var col1 = '<a '+ ' style="color:blue;"'+ ' href="javascript:showAllPoly();">Ref. Catastral</a>';      //Si pincho en el titulo de la columna se muestra todo de nuevo
+        var col1 = '<a '+ ' href="javascript:showAllPoly();">Ref. Catastral</a>';      //Si pincho en el titulo de la columna se muestra todo de nuevo
         var col2 = "Recintos";
         var col3 = "Area (ha)";
         var cabeceraTabla = "<table><thead><tr><th>"+ col1 +"</th><th>"+ col2 +"</th><th>"+ col3 +"</th></tr></thead>";
@@ -718,7 +769,7 @@
         //2. Recorro cada recinto, cada registro de cultivosSigpac, para extraer la informacion de cada fila
         var bodyHtml = "<tbody>";
         recintos.forEach(recinto => {
-            var recintoID   =   recinto.ID_RECINTO;
+            var recintoID   =   recinto.CD_RECINTO;
             var cultivo     =   recinto.CD_USO;
             var riego       =   recinto.COEF_REG;
             var pastos      =   recinto.PC_PASTOS;

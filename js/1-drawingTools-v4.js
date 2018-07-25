@@ -193,6 +193,7 @@ function initMap() {
                 console.log ("Objetos seleccionados :" + contador);    //Cuenta los objetos de misMarkers dentro del nuevo polygon
                 document.getElementById("info-box").innerText = "Objetos: " + contador;
                 document.getElementById("content-text").innerText += "\nObjetos: " + contador;
+                document.getElementById("sidebar").scrollTop = 9999;                            //force scroll down
             }
         }
     );
@@ -743,6 +744,8 @@ function mostrarRefCatastral(miLatLng){
     //1. Muestra las coordenadas en la ventana lateral
     document.getElementById("content-text").innerText +=  "\nLat: " + Math.round(miLatLng.lat()*1000)/1000
                                                             +"\nLng: " + Math.round(miLatLng.lng()*1000)/1000;
+    document.getElementById("sidebar").scrollTop = 9999;  //force scroll down
+
     //Solicito la RC del Catastro para esas coordenadas y la muestro en el visor
     refCatastralCoordenadas(miLatLng, function(refCatastral){
         //2. Muestro el RC en el visor inferior 
