@@ -22,6 +22,7 @@
 
         </div>
         <div id="content-window2">Botones
+            <button id="boton0" onclick="generarParcelaSigpac()">Testing</button>
             <button id="boton1" onclick="copiarOverlays()">Copiar</button>
 
             <input type="file" id="file-input" onchange="importarFicheroSigpac(this)" style="display: none;"/>
@@ -93,6 +94,7 @@
         <script language="javascript" src="./js/1-drawingTools-v4.js"></script>
         <!--Libreria Drawing para los controles de dibujo, la de geometry para contar dentro del poligono--> 
         <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCRbr23Yvm71EcdyAP2QK8dr_W2rh6usJs&libraries=drawing,geometry&callback=initMap" async defer></script>
+        <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
         <script type="text/javascript" src="./js/4-importGeoxml3-v4.js"></script>
         <script type="text/javascript" src="./js/geoxml3-v4.js"></script>
     </body>

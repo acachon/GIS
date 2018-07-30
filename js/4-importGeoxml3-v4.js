@@ -14,8 +14,29 @@
     //----------------------//
 
     var geoXml = null;                      //Objeto con toda la informaicon importada de las capas del catastro
-    var zIndexOffset=10;                    //Todos los objetos se indexan desde aqui. Reservo desde el zIndex=0 para mis usos (ej tapaMapa tiene zIndex=0)
-    
+    //var zIndexOffset=10;                  //Todos los objetos se indexan desde aqui. Reservo desde el zIndex=0 para mis usos (ej tapaMapa tiene zIndex=0)
+    var misUrls = [];                       //Array con las Urls del catastro para descargar las parcelas 
+
+    const misRefCatastrales=[
+        /*
+        "23900A01000045",       //Caimbo, Llano
+        "23900A01500005",       //Caimbo, Alto
+        "23900A00900100",       //Caimbo, Cantera
+        
+        "23900A01000004",       //Brujuelo, Nave
+        "23900A01000300",       //Brujuelo, EnFrente    
+        "23900A01000196",       //Brujuelo, Cuesta
+        "23900A01000005",       //Brujuelo, Alto
+        "23900A01000195",       //Brujuelo, Bajo  
+        */
+        "23900A01100057",       //Torealamo, Estacas
+        "23900A01100090",       //Torealamo, Viejas    
+        "23900A01100048",       //Torealamo, Charca
+        "23900A01100009",       //Torealamo, Balsa
+        "23900A01100119",       //Torealamo, Tableta
+        ];
+
+
     //SIGPAC
     var importedFileSigpac =null;           //Variable donde importo el contenido del fichero seleccionado
     var sigPacData;                         //Variable donde almaceno las properties de los recintos del mapa por parcela
@@ -72,32 +93,19 @@
             singleInfoWindow: true, // Muestra solo una ventana de info al clickar (la ultima), desapareciendo las demas      
             afterParse: useTheData, // Funcion llamada tras concluir el parse del fichero KML
         });
-
-        //Importo una parcela a modo de ejemplo (Caimbo) del catastro
-        const webServ   = "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?";
-        const provincia = 23;       //Jaen
-        const municipio = 900;      //Jaen
-        const sector    = "A"       //Sector A
-        const poligono  = "015";    //Grañena
-        const parcela   = "00005";  //Caimbo
-
-        /*
-        geoXml.parse(
-            "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?"
-            + "refcat=" + provincia + municipio + sector + poligono + parcela
-            + "&del=" + provincia
-            + "&mun=" + municipio
-            + "&tipo=3d"
-            );
-        */
-        ///*
         
         //Carga multiple de KML simulateamente
-        miUrls=[
-            "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A015000050000SK&del=23&mun=900&tipo=3d",
-            "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=23900A01000045&del=23&mun=900&tipo=3d",
-            ];
-        geoXml.parse(miUrls);
+        //Genero las url correspondiente a las refCatastrales predefinidas
+        misRefCatastrales.forEach(refCat =>{
+            misUrls.push(
+                "https://ovc.catastro.meh.es/Cartografia/WMS/BuscarParcelaGoogle3D.aspx?refcat=" + refCat
+                + "&del=" + refCat.substr(0,2)
+                + "&mun=" + refCat.substr(2,3)
+                + "&tipo=3d"
+            )
+        })
+
+        geoXml.parse(misUrls);
         
     };
 
@@ -414,7 +422,7 @@
 
             //Lo meto aqui para que sea mas directo el proceso pinchando un solo boton ya tengo un par de parcels al menos para jugar
             //Extraigo las RCs que me interesan y construyo mi propio geoJson
-            var miGeoJson = seleccionarParcelasSigpac (["23900A00900100","23900A01000043"], importedFileSigpac);
+            miGeoJson = seleccionarParcelasSigpac (["23900A00900100","23900A01000043"], importedFileSigpac);
 
             //Muestro el fichero generado
             map.data.setStyle(geoJsonDefaultOptions);       //me aseguro de que se hayan cargado los valores por defecto (zIndex, por ejemplo)
@@ -494,7 +502,7 @@
         map.data.addListener('mouseover', function(event) {
             if (!layersControl[2].flagClickable) return;                //Flag global que inhibie los listener cuando no SIGPAC no es seleccionable
             
-            map.data.overrideStyle(event.feature, {fillOpacity: 1 });
+            map.data.overrideStyle(event.feature, {fillOpacity: 1,});
         });
 
         //Al salir de la feature devuelvo el opacity al valor por defecto
@@ -680,11 +688,15 @@
     //Esta funcion (setStyle) es llamada cada vez que se incluye algo nuevo en map.data. No solo en este momento
         //map.data.setStyle(geoJsonDefaultOptions);
         map.data.setStyle(function(feature) {
-            //Determino el color en base al tipo de uso del suelo
+            //Determino el color en base al tipo de uso del suelo por cada feature
+            var mifillColor     =   colorByUso[feature.getProperty('CD_USO')]; //colorByUso es un Objeto global constante que signo un color a cada uso
+            var mifillOpacity   =   0.5;
+            var visibilidad     =   feature.getProperty("type")=="parcela"? true : true;        //No muestra las parcelas solo recintos !!
+            //------------------------------------------------------//
             var style = {
-                fillColor:      colorByUso[feature.getProperty('CD_USO')],  //colorByUso es un Objeto global constante que signo un color a cada uso
-                fillOpacity:    0.5,
-                visible:        true,           
+                fillColor:      mifillColor,  //colorByUso es un Objeto global constante que signo un color a cada uso
+                fillOpacity:    mifillOpacity,
+                visible:        visibilidad,           
                 zIndex:         zIndexOffset,
             };
             return style;

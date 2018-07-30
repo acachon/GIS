@@ -18,8 +18,10 @@ var map;                            //Controlador del Mapa
 var drawingManager;                 //Controlador del toolbar 
 var selectedShapes = [];           //Array global que recoge las formas seleccionadas si hay alguna
 var selectingFlag = false           //Detecto si tengo CTRL pulsado y activo seleccion multiple
+var zIndexOffset=10;                    //Todos los objetos se indexan desde aqui. Reservo desde el zIndex=0 para mis usos (ej tapaMapa tiene zIndex=0)
 
-var migeoJSON;                      //Solo puedo llamar a funciones externas a initMap() desde un objeto global fuera de InitMap()
+
+var ejemploGeoJson;                      //Solo puedo llamar a funciones externas a initMap() desde un objeto global fuera de InitMap()
 var ruta;
 var puntos;
 
@@ -215,9 +217,9 @@ function initMap() {
     //-------------------------------------------------------------------------------------------------//
     //3. DATOS: Cargo otros tipos de datos, para explorar la capa maps.data
     //A. geoJSON
-    migeoJSON = migeoJSON();                    //Creo un objeto con formato geoJSON
+    ejemploGeoJson = generaGeoJson();                    //Creo un objeto con formato geoJSON
 
-    map.data.addGeoJson(migeoJSON);             //loadGeoJson("http...") es para cargar un archivo
+    map.data.addGeoJson(ejemploGeoJson);             //loadGeoJson("http...") es para cargar un archivo
     map.data.setStyle({
         visible: true,
         strokeWeight: 5,
@@ -545,7 +547,7 @@ function copiarOverlays(){
 
 // Funcion que se usa solo a modo de ejemplo de otra forma de importar datos //
 //---------------------------------------------------------------------------//
-function migeoJSON(){
+function generaGeoJson(){
 //Devuelvo un fichero geoJSON con puntos y una liena de ejemplo
     var geoJSON={
         "type": "Feature",
@@ -755,8 +757,11 @@ function mostrarRefCatastral(miLatLng){
         importarXmlRefCatastral(refCatastral);
 
         //2.2 Importo los recintos SIGPAC de la referencia catastral del fichero importedFile y lo incluyo en el map.data
-        var miGeoJson = seleccionarParcelasSigpac(refCatastral, importedFileSigpac);   //Selecciono los recintos y creo un geoJson
-        mostrarParcelasSigpac (miGeoJson);                                              //Doy formato, activo listeners y pongo en el mapa
+        //ToDo: revisar si como global da problemas
+        var newGeoJson = seleccionarParcelasSigpac(refCatastral, importedFileSigpac);   //Selecciono los recintos y creo un geoJson
+        //Incluyo las nuevas features en el listado existente del nuevo fichero miGeoJson
+        !miGeoJson.features ? miGeoJson=newGeoJson : miGeoJson.features = miGeoJson.features.concat(newGeoJson.features);
+        mostrarParcelasSigpac (newGeoJson);                                              //Doy formato, activo listeners y pongo en el mapa
     });
 }
     
@@ -962,4 +967,142 @@ function toogleEditable (layerID){
     document.getElementById("#editar" + layerID).src=src;                              //Cambio el icono
 
     layersControl[layerID].flagEditable = !layersControl[layerID].flagEditable;           //toggle status flag
+}
+
+//------------------------------//
+//TEsting de codigo y metodos   //
+//------------------------------//
+
+function testCode(){
+//codigo para hacer pruebas
+    
+    //Ejemplo turf
+    //http://turfjs.org/docs/
+    var features = miGeoJson;
+    features = turf.truncate(features, {precision: 5}); //Reduzco la precison de las coordenadas
+
+    //Center (OK)
+    /*
+    var punto = turf.center(features);
+    console.log("El punto central \n")
+    console.log(punto);
+
+    //Pinta un marker en las coordenadas indicadas   
+    var marcador = new google.maps.Marker({
+      position: {
+        lat: punto.geometry.coordinates[1], 
+        lng: punto.geometry.coordinates[0]
+        },
+      map: map,
+      title: 'Mi marcador!'
+    });
+    */
+
+
+}
+
+function generarParcelaSigpac(ficheroGeoJson){
+    //Ejemplo turf
+
+    //Otras funciones interesntes ...
+    //http://turfjs.org/docs/
+    //
+    //  bbox, length, pointToLinedistance, difference, bboxClip, bezierSpline,intersect, union, voronoi, lineChunk, lineSplice, mask, featureCollection, 
+    //  lineString,    
+    //-----------------------------------------//
+    //http://turfjs.org/docs/
+    
+    var output=[];   //Array con las parcelas generadas por cada ref catastral encontrada
+
+    var geoJson = ficheroGeoJson || miGeoJson;
+    geoJson = turf.truncate(geoJson, {precision: 5}); //Reduzco la precison de las coordenadas
+    features=geoJson.features;
+
+    //Recorro todos recintos y voy generando una nuevo como union de los que pertenecen a una misma parcela
+    //Se asume que los recintos etan ordenados por parcela
+    var misRecintos=[];                                         //REcintos de una misma parcela
+    var refCatastral=features[0].properties["refCatastral"];
+    features.forEach( (feature, index) => {
+        if (feature.properties["refCatastral"]!==refCatastral || index==features.length-1 ){ //si se trata de una nueva ref, proceso lo que tengo acumulado en misRecintos (sin la nueva) 
+            
+            if(feature.properties["refCatastral"]==refCatastral) {  //si he llegado al final, incluyo este ultimo en misRecintos
+                misRecintos.push(feature);
+            }
+
+            //Uno los recintos acumulados
+            var sup     = misRecintos[0].properties["NU_AREA"];
+            var pdte    = misRecintos[0].properties["PDTE_MEDIA"]*misRecintos[0].properties["NU_AREA"];
+            var riego   = misRecintos[0].properties["COEF_REG"] *misRecintos[0].properties["NU_AREA"];
+            var pastos  = misRecintos[0].properties["PC_PASTOS"]*misRecintos[0].properties["NU_AREA"];
+            var union   = misRecintos[0];
+
+            for (var i=1; i<misRecintos.length; i++){
+                //Acumulo contadores de recinto para hacer el promedio de la parcela
+                sup     +=  misRecintos[i].properties["NU_AREA"];
+                pdte    +=  misRecintos[i].properties["PDTE_MEDIA"]*misRecintos[i].properties["NU_AREA"];
+                riego   +=  misRecintos[i].properties["COEF_REG"]*misRecintos[i].properties["NU_AREA"];
+                pastos  +=  misRecintos[i].properties["PC_PASTOS"]*misRecintos[i].properties["NU_AREA"];
+                
+                union   =   turf.union(union,misRecintos[i]);
+            }; 
+            //Ajusto las propiedades a nivel de parcela
+            //Genero bounds con el formato de GoogleMaps para luego poder hacer directamente map.fitbounds(bounds)
+            var extremos=   turf.bbox(union);
+            var bounds  =   new google.maps.LatLngBounds();
+            bounds.extend(new google.maps.LatLng(extremos[3], extremos[2]));    //NorthEast
+            bounds.extend(new google.maps.LatLng(extremos[1], extremos[0]));    //SouthWest
+
+            union.properties={
+                type:           "parcela",
+                refCatastral:   refCatastral,   
+                CD_USO:         "parcela",          //solo para darle formato como a los recintos
+                bounds:         bounds,   //bounds de la parcela (convertir a GoogleMaps !!)
+                recintos:       i,                  //Numero de recinto
+                superficie:     sup,                //En metros cuadrados
+                pendientePC:    Math.round(pdte/sup*100)/100,
+                riegoPC:        Math.round(riego/sup*100)/100,
+                pastosPC:       Math.round(pastos/sup*100)/100,
+            };  
+            output.push(union);                                 //Almaceno la parcela anterior generada en el array de salida
+            map.data.addGeoJson(union);                         //Pinto el nuevo geoJson de union
+            misRecintos=[];                                     //Vuelvo a inicializar para agregar los recintos de esta nueva parcela
+            refCatastral=feature.properties["refCatastral"];    //Guardo la nueva refCatastral
+        }
+
+        misRecintos.push(feature);    //Incluyo el nuevo recinto en el listado de la parcela actual 
+    });
+
+    //si el ultimo recinto era una parcela distinta debo procesarla por separado tambien
+    if(features[features.length-1].properties["refCatastral"]!==features[features.length-2].properties["refCatastral"] ){
+        
+        //Ajusto las propiedades a nivel de parcela
+        union   = features[features.length-1];
+
+        sup     = union.properties["NU_AREA"];
+        pdte    = union.properties["PDTE_MEDIA"];
+        riego   = union.properties["COEF_REG"] ;
+        pastos  = union.properties["PC_PASTOS"];
+
+        //Genero bounds con el formato de GoogleMaps para luego poder hacer directamente map.fitbounds(bounds)
+        extremos=   turf.bbox(union);
+        bounds  =   new google.maps.LatLngBounds();
+        bounds.extend(new google.maps.LatLng(extremos[3], extremos[2]));    //NorthEast
+        bounds.extend(new google.maps.LatLng(extremos[1], extremos[0]));    //SouthWest
+
+        union.properties={
+            type:           "parcela",
+            refCatastral:   union.properties["refCatastral"],   
+            CD_USO:         "parcela",          //solo para darle formato como a los recintos
+            bounds:         bounds,   //bounds de la parcela (convertir a GoogleMaps !!)
+            recintos:       1,                  //Numero de recinto
+            superficie:     sup,
+            pendientePC:    pdte,
+            riegoPC:        riego,
+            pastosPC:       pastos,
+        };  
+        output.push(union);                                 //Almaceno la parcela anterior generada en el array de salida
+        map.data.addGeoJson(union);                         //Pinto el nuevo geoJson de union
+    }
+
+    return output;
 }
